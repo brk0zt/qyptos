@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Cloud MVP</title></head>
+<body>
+  <div id="root">{% block content %}{% endblock %}</div>
+  <script>
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "PrintScreen") {
+            alert("⚠️ Ekran görüntüsü almak yasaktır!");
+            try { navigator.clipboard.writeText(""); } catch(e) {}
+        }
+        if ((e.ctrlKey && e.key === "s") || (e.ctrlKey && e.key === "u")) {
+            e.preventDefault();
+            alert("Kaydetme / kaynak görüntüleme devre dışı.");
+        }
+    });
+  </script>
+</body>
+</html>

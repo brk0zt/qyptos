@@ -1,0 +1,119 @@
+﻿* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #00CED1, #008BBB, #007F7F);
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 450px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    padding: 35px;
+    backdrop-filter: blur(10px);
+}
+
+.form-section h1 {
+    text-align: center;
+    color: #007F7F;
+    margin-bottom: 30px;
+    font-weight: 600;
+    font-size: 28px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #007F7F;
+        font-weight: 500;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 14px 14px 14px 40px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s;
+        outline: none;
+    }
+
+        .input-group input:focus {
+            border-color: #00CED1;
+            box-shadow: 0 0 0 3px rgba(0, 206, 209, 0.2);
+        }
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 40px;
+    color: #007F7F;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 14px;
+    top: 40px;
+    color: #007F7F;
+    cursor: pointer;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #00CED1, #008B8B);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .submit-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+.toggle-text {
+    text-align: center;
+    margin-top: 20px;
+    color: #007F7F;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #008B8B;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+    .toggle-btn:hover {
+        text-decoration: underline;
+    }
