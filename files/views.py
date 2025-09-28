@@ -10,8 +10,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
-from rest_framework.decorators import api_view, permission_classes
-import uuid  
+from rest_framework.decorators import api_view, permission_classes 
 from rest_framework import status
 from django.contrib.auth.models import User
 from .models import CloudGroup, GroupInvite, GroupMember
@@ -19,7 +18,6 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-import os
 import mimetypes, os, uuid
 from .serializers import FileSerializer, CloudGroupSerializer, GroupFileSerializer, FileCommentSerializer, GroupInviteSerializer
 from .utils import add_watermark
