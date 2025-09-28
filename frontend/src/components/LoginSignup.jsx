@@ -17,51 +17,7 @@ function LoginSignup({ onKayit }) {
         }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (isLogin) {
-            try {
-                console.log('Login attempt:', formData);
-
-                const response = await fetch('http://localhost:8001/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken(), 
-                    },
-                    body: JSON.stringify({
-                        email: formData.email,
-                        password: formData.password
-                    })
-                });
-
-                console.log('Request method: POST');
-                console.log('Response status:', response.status);
-                const data = await response.json();
-                console.log('Response data:', data);
-
-                if (response.ok && data.success) {
-                    localStorage.setItem('token', data.token);
-                    window.location.href = '/dashboard';
-                } else {
-                    alert(data.message || `Giriş başarısız! Status: ${response.status}`);
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert(`Giriş sırasında hata oluştu: ${error.message}`);
-            }
-        } else {
-            // Signup logic (mevcut kodun)
-            const result = await onKayit(formData);
-            if (result && result.success) {
-                setIsLogin(true);
-                setFormData({ username: '', email: '', password: '' });
-            }
-        }
-    };
-
+    // Tarayıcı çerezlerinden CSRF jetonunu çeken yardımcı fonksiyon
     const getCSRFToken = () => {
         const cookieValue = document.cookie
             .split('; ')
@@ -70,13 +26,73 @@ function LoginSignup({ onKayit }) {
         return cookieValue || '';
     };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            const endpoint = isLogin ? 'login' : 'signup';
+            const url = `http://localhost:8001/api/auth/${endpoint}/`;
+
+            console.log(`${isLogin ? 'Login' : 'Signup'} attempt:`, formData);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',  // Cookie'ler için önemli
+                body: JSON.stringify(isLogin ? {
+                    email: formData.email,  // LoginView artık email bekliyor
+                    password: formData.password
+                } : formData)
+            });
+
+            console.log('Response status:', response.status);
+
+            // Önce response'ın JSON olup olmadığını kontrol et
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (response.ok && data.success) {
+                    if (isLogin) {
+                        // JWT token'ı localStorage'a kaydet
+                        localStorage.setItem('access_token', data.access);
+                        localStorage.setItem('refresh_token', data.refresh);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        window.location.href = '/dashboard';
+                    } else {
+                        alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+                        setIsLogin(true);
+                        setFormData({ username: '', email: '', password: '' });
+                    }
+                } else {
+                    alert(data.message || `İşlem başarısız! Status: ${response.status}`);
+                }
+            } else {
+                const text = await response.text();
+                console.error('Beklenmeyen yanıt formatı:', text);
+                alert(`Sunucu hatası: ${response.status}. Lütfen konsolu kontrol edin.`);
+            }
+
+        } catch (error) {
+            console.error('Auth error:', error);
+            alert(`İşlem sırasında hata oluştu: ${error.message}`);
+        }
+    };
+
     return (
         <div className="login-signup-container">
+            {/* ... Formun geri kalanı ... */}
             {isLogin ? (
                 // LOGIN FORM
                 <div className="form-section">
                     <h1>Giriş Yap</h1>
                     <form onSubmit={handleSubmit}>
+                        {/* ... Giriş alanları ... */}
                         <div className="input-group">
                             <label>E-posta</label>
                             <i className="fas fa-envelope input-icon"></i>

@@ -1,0 +1,337 @@
+﻿/* styles/Dashboard.css */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: #000000;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* styles/Dashboard.css */
+.dashboard-horizontal {
+    /* ... Arka plan stilleriniz ... */
+    background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15) 5%, transparent 65%), radial-gradient(circle at bottom right, rgba(0, 206, 209, 0.1) 5%, transparent 65%), #050505;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Taşmayı ve olası kaydırma çubuklarını engelle */
+    overflow: hidden;
+    /* !!! KESİNLİKLE KALDIRIN !!! */
+    box-shadow: none !important;
+    /* Kenarlığı örtmek için daha agresif negatif marj */
+    margin: -5px;
+    width: calc(100% + 10px); /* 2 * 5px'i telafi etmek için */
+}
+
+/* ... diğer stiller ... */
+/* Üst Navigasyon */
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    height: 70px;
+    background: rgba(15, 15, 15, 0.8);
+    /* Gölgeyi kaldırıyoruz */
+    box-shadow: none;
+    /* Alt kenarlığı tamamen siliyoruz */
+    border-bottom: none;
+    backdrop-filter: blur(10px);
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    margin-right: 40px;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.qyptos-logo-img {
+    height: 100px; /* İhtiyaca göre boyutu ayarlayın */
+    width: auto;
+    margin-right: 10px;
+    /* Yüksek çözünürlüklü logolarda netlik için */
+    image-rendering: -webkit-optimize-contrast;
+}
+
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    margin: 0 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+    .nav-item:hover {
+        background: rgba(59, 130, 246, 0.1);
+        color: white;
+    }
+
+    .nav-item.active {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3B82F6;
+    }
+
+    .nav-item i {
+        margin-right: 8px;
+        font-size: 16px;
+    }
+
+.nav-right {
+    display: flex;
+    align-items: center;
+}
+
+.notification-bell {
+    position: relative;
+    margin-right: 20px;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+    .notification-bell:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #EF4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.user-dropdown {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s ease;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+    .user-dropdown:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+        .user-dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+.user-name {
+    margin-right: 10px;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 8px;
+    padding: 10px 0;
+    min-width: 180px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    transition: background 0.3s ease;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+    .dropdown-item:hover {
+        background: rgba(59, 130, 246, 0.1);
+        color: white;
+    }
+
+    .dropdown-item i {
+        margin-right: 10px;
+        width: 16px;
+        text-align: center;
+    }
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 8px 0;
+}
+
+/* Ana İçerik */
+.main-content-horizontal {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.content-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ChunkDownloader Bileşeni İçin Özel Stil */
+.chunk-downloader {
+    /* Arka planı tamamen saydam yapıyoruz, böylece genel gradyan görünebilir. */
+    background: transparent;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: none; /* Shadow'u kaldırıyoruz, sadece border'ı bırakıyoruz */
+    color: white;
+    height: 100%;
+    /* İçerik etrafındaki parlak kenarlığı korumak için, saydam bir border ekleyebilirsiniz. */
+    
+    backdrop-filter: blur(0px); /* Blur'u kaldırıyoruz ya da azaltıyoruz */
+}
+
+    .chunk-downloader h2 {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        color: #3B82F6;
+        font-size: 24px;
+    }
+
+        .chunk-downloader h2 i {
+            margin-right: 10px;
+        }
+
+    .chunk-downloader p {
+        margin-bottom: 20px;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.5;
+    }
+
+.api-section {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #3B82F6;
+}
+
+    .api-section h4 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #3B82F6;
+    }
+
+    .api-section p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+.user-section {
+    background: rgba(0, 206, 209, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #00CED1;
+}
+
+    .user-section h4 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #00CED1;
+    }
+
+    .user-section p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+.warning-section {
+    background: rgba(239, 68, 68, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #EF4444;
+}
+
+    .warning-section h4 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #EF4444;
+    }
+
+    .warning-section p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+/* Responsive Tasarım */
+@media (max-width: 900px) {
+    .top-nav {
+        padding: 0 15px;
+    }
+
+    .nav-menu {
+        display: none;
+    }
+
+    .logo {
+        margin-right: 20px;
+    }
+
+    .main-content-horizontal {
+        padding: 15px;
+    }
+}

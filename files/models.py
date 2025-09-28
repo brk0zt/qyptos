@@ -48,7 +48,7 @@ class GroupFile(models.Model):
     group = models.ForeignKey(CloudGroup, on_delete=models.CASCADE, related_name='files')
     file = models.FileField(upload_to='group_files/')
     uploader = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    file.uploader = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True) 
     one_time_view = models.BooleanField(default=False)
     has_been_viewed = models.BooleanField(default=False)
     view_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)

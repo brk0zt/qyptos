@@ -4,28 +4,35 @@ import { AuthProvider, useAuth } from './AuthContext';
 import LoginSignup from './components/LoginSignup';
 import Dashboard from './components/Dashboard';
 import './index.css';
+import FileDetail from "./components/FileDetail";
 
-// Auth durumuna göre yönlendirme yapan bileşen
+<Routes>
+    <Route path="/login" element={<LoginSignup />} />
+    <Route path="/" element={<Dashboard />} />
+    <Route path="/files/:fileId" element={<FileDetail />} />
+</Routes>
+
 function AppContent() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState([]);
 
-    // WebSocket bağlantısı - useEffect içinde
+    // WebSocket bağlantısı - SADECE user varsa
     useEffect(() => {
-        // WebSocket bağlantısını sadece kullanıcı giriş yapmışsa kur
         if (user) {
-            const ws = new WebSocket('ws://localhost:3000');
-
-            ws.onopen = () => {
-                console.log('WebSocket connected successfully');
+            console.log('WebSocket bağlantısı geçici olarak devre dışı');
+            
+            // const ws = new WebSocket('ws://localhost:8001/ws/notifications/');
+            /*
+            // ws.onopen = () => {
+              //  console.log('WebSocket connected successfully');
             };
 
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    setNotifications((prev) => [data, ...prev]);
-                } catch (error) {
-                    console.error('WebSocket message parsing error:', error);
+           // ws.onmessage = (event) => {
+             //   try {
+               //     const data = JSON.parse(event.data);
+                 //   setNotifications((prev) => [data, ...prev]);
+              //  } catch (error) {
+                //    console.error('WebSocket message parsing error:', error);
                 }
             };
 
@@ -37,31 +44,41 @@ function AppContent() {
                 console.log('WebSocket disconnected');
             };
 
-            // Cleanup function
             return () => {
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.close();
                 }
             };
+            */
         }
-    }, [user]); // user değiştiğinde yeniden bağlan
-
-    const handleKayit = async (userData) => {
+    }, [user]);
+    
+    const handleKayit = async (kayitData) => {
         try {
-            const response = await fetch('http://localhost:8001/files/kayit', {
+            console.log('Signup attempt:', kayitData);
+
+            const response = await fetch('http://localhost:8001/api/auth/signup/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify(kayitData)
             });
 
-            const result = await response.json();
-            console.log('Kayıt başarılı:', result);
-            return result;
+            console.log('Signup response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Signup response data:', data);
+
+            return data;
+
         } catch (error) {
-            console.error('Kayıt hatası:', error);
-            return null;
+            console.error('Signup error:', error);
+            throw error;
         }
     };
 
@@ -79,13 +96,11 @@ function AppContent() {
                 path="/"
                 element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
             />
-            {/* Redirect login.html to login */}
             <Route path="/login.html" element={<Navigate to="/login" replace />} />
         </Routes>
     );
 }
 
-// Ana App bileşeni
 function App() {
     return (
         <Router>

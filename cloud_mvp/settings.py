@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "channels",
     "notifications",
     "groups",
+        
 ]
 
 MIDDLEWARE = [
@@ -68,15 +69,30 @@ AUTH_USER_MODEL = 'users.CustomUser'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  
+        # JWT'yi (Simple JWT) kullanýyorsanýz, ana kimlik doðrulama sýnýfý budur.
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Ekle
+        # Eðer hem JWT hem de standart TokenAuthentication (DRF'in kendi token'ý) kullanýyorsanýz
+        # bu satýrý da ekleyin. Kullanmýyorsanýz silin.
+        # 'rest_framework.authentication.TokenAuthentication',
+        
+        # Django session'larýný da kullanmak isterseniz (tarayýcýdan eriþim için):
+        # 'rest_framework.authentication.SessionAuthentication', 
     ],
+    
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  
+        # Varsayýlan olarak tüm endpoint'leri korur.
+        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # Geçici: Tüm endpoint'lere eriþime izin ver
+
     ],
-    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    
     'DEFAULT_RENDERER_CLASSES': [
+        # Tüm yanýtlarýn varsayýlan olarak JSON formatýnda gönderilmesini saðlar (API için standarttýr).
         'rest_framework.renderers.JSONRenderer',
     ],
+    
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -93,7 +109,13 @@ CHANNEL_LAYERS = {
     },
 }
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",      # React'in varsayýlan adresi
+    "http://127.0.0.1:3000",
+    # Eðer React baþka bir adreste çalýþýyorsa onu da ekle
+]
 CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_HTTPONLY = False 
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -113,4 +135,14 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
-
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8001",
+]
+CSRF_COOKIE_DOMAIN = None # Varsayýlan olarak None býrakmak genellikle en iyisidir.
+CSRF_COOKIE_SAMESITE = 'None' # Modern tarayýcýlar için önerilir.
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = False

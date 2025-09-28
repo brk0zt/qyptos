@@ -10,7 +10,7 @@ export default function Profile() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await fetch("http://127.0.0.1:8000/auth/profile/", {
+                const res = await fetch("http://127.0.0.1:8001/auth/profile/", {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -32,7 +32,7 @@ export default function Profile() {
 
     useEffect(() => {
         const loadProfile = async () => {
-            const res = await apiFetch("http://127.0.0.1:8000/auth/profile/");
+            const res = await apiFetch("http://127.0.0.1:8001/auth/profile/");
             if (res.ok) {
                 const data = await res.json();
                 setProfile(data);

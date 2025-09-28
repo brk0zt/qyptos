@@ -1,7 +1,12 @@
-# admin.py
-from django.contrib import admin
-from .models import *
+﻿from django.contrib import admin
+from .models import (
+    File, CloudGroup, GroupFile, FileComment, 
+    GroupInvite, SecureLink, GroupMember, GroupFeed, 
+    Ad, UserEarning, MediaFile  
+)
 
+
+admin.site.register(MediaFile)
 admin.site.register(File)
 admin.site.register(CloudGroup)
 admin.site.register(GroupFile)

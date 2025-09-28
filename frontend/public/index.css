@@ -11,7 +11,7 @@ body {
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #00CED1, #008BBB, #007F7F);
-    padding: 20px;
+    padding: 0;
 }
 
 .container {

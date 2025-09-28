@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { Button } from "./ui/Button";
 import {
@@ -16,46 +17,77 @@ import { useApi } from "../utils/api";
 export default function Navbar({ onProfileClick }) {
     const { user, logout } = useAuth();
     const { apiFetch } = useApi();
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
 
-    useEffect(() => {
-        const loadNotifications = async () => {
-            const res = await apiFetch("http://127.0.0.1:8000/notifications/");
-            if (res.ok) {
-                const data = await res.json();
-                setNotifications(data);
-            }
-        };
-        if (user) loadNotifications();
-    }, [user, apiFetch]);
-
-    const handleMarkAllAsRead = async () => {
-        const res = await apiFetch("http://127.0.0.1:8000/notifications/read-all/", {
-            method: "PATCH",
-        });
-        if (res.ok) {
-            setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    const handleClickNotification = async (id, targetUrl) => {
+        await handleMarkAsRead(id);
+        if (targetUrl) {
+            navigate(targetUrl);
         }
     };
 
+
     useEffect(() => {
-        if (!user) return;
+        const loadNotifications = async () => {
+            try {
+                const response = await fetch('http://localhost:8001/notifications/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',  // Önemli: cookie'leri include et
+                });
 
-        // WebSocket bağlan
-        const ws = new WebSocket("ws://127.0.0.1:8000/ws/notifications/");
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            setNotifications((prev) => [data, ...prev]);
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data);
+                } else {
+                    console.error('Bildirimler yüklenemedi:', response.status);
+                }
+            } catch (error) {
+                console.error('Bildirim yükleme hatası:', error);
+                // Hata durumunda boş array set et
+                setNotifications([]);
+            }
         };
 
-        ws.onclose = () => {
-            console.log("🔌 WebSocket bağlantısı kapandı");
-        };
-
-        return () => ws.close();
+        if (user) {
+            loadNotifications();
+        }
     }, [user]);
 
+    const handleMarkAllAsRead = async () => {
+        try {
+            const res = await apiFetch("/notifications/read-all/", {
+                method: "PATCH",
+            });
+            if (res.ok) {
+                setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+            }
+        } catch (error) {
+            console.error("Okundu işaretleme hatası:", error);
+        }
+    };
+
+    const handleMarkAsRead = async (notificationId) => {
+        try {
+            const res = await apiFetch(`/notifications/${notificationId}/read/`, {
+                method: "PATCH",
+            });
+            if (res.ok) {
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n.id === notificationId ? { ...n, is_read: true } : n
+                    )
+                );
+            }
+        } catch (error) {
+            console.error("Bildirim okundu işaretleme hatası:", error);
+        }
+    };
+
+    // WebSocket bağlantısını App.js'de yapıyoruz, burada gerek yok
 
     return (
         <div className="w-full h-14 bg-white shadow flex items-center justify-between px-6">
@@ -67,9 +99,9 @@ export default function Navbar({ onProfileClick }) {
                     <DropdownMenuTrigger asChild>
                         <div className="relative cursor-pointer">
                             <Bell className="h-6 w-6 text-gray-700" />
-                            {notifications.length > 0 && (
+                            {notifications.filter(n => !n.is_read).length > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">
-                                    {notifications.length}
+                                    {notifications.filter(n => !n.is_read).length}
                                 </span>
                             )}
                         </div>
@@ -78,7 +110,7 @@ export default function Navbar({ onProfileClick }) {
                         <DropdownMenuLabel>Bildirimler</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        {notifications.length > 0 && (
+                        {notifications.filter(n => !n.is_read).length > 0 && (
                             <>
                                 <DropdownMenuItem
                                     className="text-blue-600 cursor-pointer"
@@ -95,18 +127,17 @@ export default function Navbar({ onProfileClick }) {
                                 Henüz bildiriminiz yok
                             </DropdownMenuItem>
                         ) : (
-                            notifications.map((n) => (
+                            notifications.slice(0, 5).map((n) => (
                                 <DropdownMenuItem
                                     key={n.id}
                                     className={n.is_read ? "text-gray-400" : "font-medium"}
                                     onClick={() => handleMarkAsRead(n.id)}
                                 >
-                                    {n.text}
+                                    {n.text || n.message}
                                 </DropdownMenuItem>
                             ))
                         )}
                     </DropdownMenuContent>
-
                 </DropdownMenu>
 
                 {/* Kullanıcı Menüsü */}
@@ -136,7 +167,6 @@ export default function Navbar({ onProfileClick }) {
         </div>
     );
 }
-
 
 
 

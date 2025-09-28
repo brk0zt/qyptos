@@ -1,14 +1,10 @@
 {
   "ExpandedNodes": [
     "",
-    "\\cloud_mvp",
-    "\\files",
     "\\frontend",
+    "\\frontend\\public",
     "\\frontend\\src",
-    "\\frontend\\src\\components",
-    "\\notifications",
-    "\\users"
+    "\\frontend\\src\\components"
   ],
-  "SelectedNode": "\\cloud_mvp\\settings.py",
   "PreviewInSolutionExplorer": false
 }

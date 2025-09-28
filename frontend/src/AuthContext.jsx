@@ -28,14 +28,14 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             if (refreshToken) {
-                await fetch("http://127.0.0.1:8000/auth/logout/", {
+                await fetch("http://127.0.0.1:8001/auth/logout/", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ refresh: refreshToken }),
                 });
             }
         } catch (err) {
-            console.error("Logout isteği başarısız:", err);
+            console.error("Logout istegi basarisiz:", err);
         }
 
         setUser(null);
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-            const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+            const res = await fetch("http://127.0.0.1:8001/api/token/refresh/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ refresh: refreshToken }),
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
             // Token hala geçerli mi kontrol et
             const checkTokenValidity = async () => {
                 try {
-                    const res = await fetch("http://127.0.0.1:8000/api/verify-token/", {
+                    const res = await fetch("http://127.0.0.1:8001/api/verify-token/", {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }

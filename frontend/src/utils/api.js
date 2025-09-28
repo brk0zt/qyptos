@@ -20,7 +20,7 @@ export function useApi() {
             if (response.status === 401 && refreshToken) {
                 console.log("⏳ Access token expired, refreshing...");
 
-                const refreshRes = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
+                const refreshRes = await fetch("http://127.0.0.1:8001/api/token/refresh/", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ refresh: refreshToken }),
@@ -42,7 +42,7 @@ export function useApi() {
 
             return response;
         } catch (err) {
-            console.error("API istegi başarısız:", err);
+            console.error("API istegi basarisiz:", err);
             throw err;
         }
     };

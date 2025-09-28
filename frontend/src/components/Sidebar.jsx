@@ -1,47 +1,40 @@
-﻿import React, { useState } from "react";
-import { Button } from './ui/Button';
-import { Download, Users, Monitor, PanelLeftClose, PanelLeftOpen, UserRound } from "lucide-react";
+﻿// Sidebar.jsx
+import React from "react";
 
-export default function Sidebar({ active, setActive }) {
-    const [collapsed, setCollapsed] = useState(false);
-
+export default function Sidebar({ active, setActive, onLogout }) {
     const menuItems = [
-        { key: "downloader", label: "Downloader", icon: <Download className="h-4 w-4" /> },
-        { key: "groups", label: "Groups", icon: <Users className="h-4 w-4" /> },
-        { key: "ads", label: "Ads", icon: <Monitor className="h-4 w-4" /> },
-        // Yeni menü öğesi eklendi
-        { key: "profile", label: "Profile", icon: <UserRound className="h-4 w-4" /> },
+        { key: "downloader", icon: "fas fa-download", label: "Downloader" },
+        { key: "groups", icon: "fas fa-users", label: "Gruplar" },
+        { key: "ads", icon: "fas fa-ad", label: "Reklamlar" },
+        { key: "media", icon: "fas fa-photo-video", label: "Medya" },
+        { key: "profile", icon: "fas fa-user-circle", label: "Profil" },
     ];
 
     return (
-        <div
-            className={`${collapsed ? "w-16" : "w-52"
-                } bg-white shadow h-full flex flex-col transition-all duration-300`}
-        >
-            <div className="flex items-center justify-between p-3 border-b">
-                {!collapsed && <h2 className="text-lg font-bold">Menü</h2>}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCollapsed(!collapsed)}
-                    className="ml-auto"
-                >
-                    {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-                </Button>
+        <div className="sidebar">
+            <div className="logo">
+                <i className="fas fa-cloud"></i>
+                <h1>Cloud MVP</h1>
             </div>
 
-            <div className="flex-1 p-2 space-y-2">
-                {menuItems.map((item) => (
-                    <Button
+            <div className="menu">
+                {menuItems.map(item => (
+                    <div
                         key={item.key}
-                        variant={active === item.key ? "default" : "ghost"}
-                        className={`w-full justify-start ${collapsed ? "justify-center px-2" : ""}`}
+                        className={`menu-item ${active === item.key ? 'active' : ''}`}
                         onClick={() => setActive(item.key)}
                     >
-                        {item.icon}
-                        {!collapsed && <span className="ml-2">{item.label}</span>}
-                    </Button>
+                        <i className={item.icon}></i>
+                        <span>{item.label}</span>
+                    </div>
                 ))}
+
+                <div className="divider"></div>
+
+                <div className="menu-item" onClick={onLogout}>
+                    <i className="fas fa-sign-out-alt"></i>
+                    <span>Çıkış Yap</span>
+                </div>
             </div>
         </div>
     );

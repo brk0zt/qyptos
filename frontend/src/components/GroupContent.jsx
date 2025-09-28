@@ -1,10 +1,12 @@
 ﻿import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent } from './ui/Card';
-;
 import { Input } from "./Input";
 import { Button } from './ui/Button';
 import { Textarea } from "./Textarea";
-import SingleViewMedia from "./SingleViewMedia"; 
+import SingleViewMedia from "./SingleViewMedia";
+import { Label } from "./ui/Label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/Select";
+import useApi from "./useApi";
 
 const GroupContent = ({ groupId, apiBase, userEmail }) => {
     const [authorized, setAuthorized] = useState(false);
@@ -12,6 +14,12 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
     const [comments, setComments] = useState({});
     const [newComment, setNewComment] = useState("");
     const [selectedFileId, setSelectedFileId] = useState(null);
+    const [file, setFile] = useState(null);
+    const [oneTime, setOneTime] = useState(false);
+    const [duration, setDuration] = useState("unlimited");
+    const [watermark, setWatermark] = useState(true);
+    const [message, setMessage] = useState("");
+    const { apiFetch } = useApi();
 
     useEffect(() => {
         const checkAuthAndFetchFiles = async () => {
@@ -36,28 +44,39 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
         checkAuthAndFetchFiles();
     }, [apiBase, groupId, userEmail]);
 
-    const handleUpload = async (e) => {
+    const handleFileUpload = async (e) => {
         if (!authorized) return;
-        const file = e.target.files[0];
-        if (!file) return;
+        const uploadedFile = e.target.files[0];
+        if (!uploadedFile) return;
 
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("uploader", userEmail);
+        formData.append("file", uploadedFile);
+        formData.append("one_time_view", oneTime);
+        formData.append("view_duration", duration);
+        formData.append("watermark_enabled", watermark);
 
         try {
-            await fetch(`${apiBase}/groups/${groupId}/files/`, {
+            const res = await apiFetch(`${apiBase}/groups/${groupId}/upload/`, {
                 method: "POST",
                 body: formData,
             });
 
-            // Dosya listesini güncelle
-            const updated = await fetch(`${apiBase}/groups/${groupId}/files/`).then((r) =>
-                r.json()
-            );
-            setFiles(updated);
+            if (res.ok) {
+                const data = await res.json();
+                setMessage(`✅ Dosya yüklendi (tek seferlik: ${data.one_time_view}, süre: ${data.view_duration}, watermark: ${data.watermark_enabled})`);
+                setFile(null);
+
+                // Dosya listesini güncelle
+                const updated = await fetch(`${apiBase}/groups/${groupId}/files/`).then((r) =>
+                    r.json()
+                );
+                setFiles(updated);
+            } else {
+                setMessage("❌ Dosya yüklenemedi.");
+            }
         } catch (error) {
             console.error("Dosya yükleme hatası:", error);
+            setMessage("❌ Dosya yüklenirken hata oluştu.");
         }
     };
 
@@ -96,8 +115,49 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                         <CardHeader>
                             <h3 className="text-lg font-semibold">Dosya Yükle</h3>
                         </CardHeader>
-                        <CardContent>
-                            <Input type="file" onChange={handleUpload} />
+                        <CardContent className="space-y-4">
+                            <Input type="file" onChange={(e) => setFile(e.target.files[0])} />
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="oneTime"
+                                    checked={oneTime}
+                                    onChange={(e) => setOneTime(e.target.checked)}
+                                />
+                                <Label htmlFor="oneTime">Tek seferlik görüntüleme</Label>
+                            </div>
+
+                            <div>
+                                <Label className="block mb-1">⏳ Görüntüleme Süresi</Label>
+                                <Select value={duration} onValueChange={setDuration}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Süre seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="10s">10 saniye</SelectItem>
+                                        <SelectItem value="30s">30 saniye</SelectItem>
+                                        <SelectItem value="1m">1 dakika</SelectItem>
+                                        <SelectItem value="5m">5 dakika</SelectItem>
+                                        <SelectItem value="1h">1 saat</SelectItem>
+                                        <SelectItem value="video">Video süresi</SelectItem>
+                                        <SelectItem value="unlimited">Süresiz</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="watermark"
+                                    checked={watermark}
+                                    onChange={(e) => setWatermark(e.target.checked)}
+                                />
+                                <Label htmlFor="watermark">Watermark ekle</Label>
+                            </div>
+
+                            <Button onClick={handleFileUpload}>Yükle</Button>
+                            {message && <p className="text-sm">{message}</p>}
                         </CardContent>
                     </Card>
 
@@ -114,13 +174,13 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm text-gray-500">
-                                        Yükleyen: {file.uploader}
+                                        Yükleyen: {file.uploaded_by?.username}
                                     </p>
 
                                     {/* Tek gösterimlik medya */}
-                                    {file.single_view && (
+                                    {file.one_time_view && !file.has_been_viewed && (
                                         <SingleViewMedia
-                                            mediaUrl={file.url}
+                                            mediaUrl={file.view_url}
                                             userEmail={userEmail}
                                             onConsumed={() =>
                                                 alert("Medya tek gösterimlik olarak kullanıldı ve artık erişilemez.")
@@ -171,5 +231,3 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
 };
 
 export default GroupContent;
-
-

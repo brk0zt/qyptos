@@ -31,8 +31,6 @@ from rest_framework.decorators import action
 from .models import MediaFile
 from .serializers import MediaFileSerializer
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 import json
 
 
@@ -50,7 +48,7 @@ class MediaFileViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if media.single_view and user in media.consumed_by.all():
-            return Response({"detail": "Bu medya tek gösterimlik ve zaten görüntülediniz."},
+            return Response({"detail": "Bu medya tek gosterimlik ve zaten goruntulediniz."},
                             status=status.HTTP_403_FORBIDDEN)
 
         # Kullanıcıyı tüketenler listesine ekle
@@ -138,7 +136,7 @@ def kayit_api(request):
             
             return JsonResponse({
                 'success': True,
-                'message': 'Kullanıcı başarıyla kaydedildi',
+                'message': 'Kullanici basariyla kaydedildi',
                 'user_id': user.id
             })
             
@@ -300,7 +298,7 @@ class CloudGroupDetailView(generics.RetrieveAPIView):
         # Kullanıcının gruba üye olup olmadığını kontrol et
         group = super().get_object()
         if self.request.user not in group.members.all():
-            raise PermissionDenied('Bu gruba erişim izniniz yok')
+            raise PermissionDenied('Bu gruba erisim izniniz yok')
         return group
 
 # Grup detay görünümü
@@ -383,7 +381,7 @@ def range_download_view(request, file_name):
 @permission_classes([IsAuthenticated])
 def register_device(request):
     """
-    Kullanıcı cihazını kaydeder. Cihaz UUID ve opsiyonel isim gönderilir.
+    Kullanici cihazini kaydeder. Cihaz UUID ve opsiyonel isim gonderilir.
     """
     device_uuid = request.data.get("device_uuid")
     device_name = request.data.get("device_name", "")
@@ -393,7 +391,7 @@ def register_device(request):
     try:
         device_uuid_obj = uuid.UUID(device_uuid)
     except ValueError:
-        return Response({"error": "geçersiz UUID"}, status=400)
+        return Response({"error": "gecersiz UUID"}, status=400)
 
     device, created = Device.objects.get_or_create(
         user=request.user,
@@ -412,8 +410,8 @@ def register_device(request):
 @permission_classes([IsAuthenticated])
 def access_file(request, file_name):
     """
-    Cihaz doğrulaması yapar ve dosya erişimi verir.
-    Cihaz UUID header veya query param ile gönderilir.
+    Cihaz dogrulamasi yapar ve dosya erisimi verir.
+    Cihaz UUID header veya query param ile gonderilir.
     """
     device_uuid = request.headers.get("X-Device-UUID") or request.query_params.get("device_uuid")
     if not device_uuid:
@@ -422,15 +420,15 @@ def access_file(request, file_name):
     try:
         device_uuid_obj = uuid.UUID(device_uuid)
     except ValueError:
-        return Response({"error": "geçersiz UUID"}, status=400)
+        return Response({"error": "gecersiz UUID"}, status=400)
 
     if not Device.objects.filter(user=request.user, device_uuid=device_uuid_obj).exists():
-        return Response({"error": "cihaz doğrulaması başarısız"}, status=403)
+        return Response({"error": "cihaz dogurulmasi basarisiz"}, status=403)
 
     # Dosya yolunu ayarla
     file_path = os.path.join(settings.MEDIA_ROOT, file_name)
     if not os.path.exists(file_path):
-        return HttpResponse("Dosya bulunamadı", status=404)
+        return HttpResponse("Dosya bulunamadi", status=404)
 
 @csrf_exempt
 @require_POST
@@ -453,4 +451,5 @@ def signup_view(request):
         return JsonResponse({'detail': str(e)}, status=400)
 
     return FileResponse(open(file_path, "rb"), as_attachment=True)
+pass
 
