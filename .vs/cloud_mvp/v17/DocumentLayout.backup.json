@@ -3,16 +3,68 @@
   "WorkspaceRootPath": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\ai_services.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\services\\ai_services.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\a.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\a.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\compression_engine.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\services\\compression_engine.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\models.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\models.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\views.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:files\\views.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureFileViewer.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\components\\SecureFileViewer.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\Dashboard.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\components\\Dashboard.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\styles\\Dashboard.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\components\\styles\\Dashboard.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\tests.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\tests.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\management\\commands\\memory_maintenance.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:memory\\management\\commands\\memory_maintenance.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\cloud_mvp\\urls.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:cloud_mvp\\urls.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\urls.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:files\\urls.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\App.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\App.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\index.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\GlobalProtection.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\components\\GlobalProtection.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\users\\security\\middleware.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:users\\security\\middleware.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureViewer.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:frontend\\src\\components\\SecureViewer.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,46 +74,203 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "index.css",
-              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.css",
-              "RelativeDocumentMoniker": "frontend\\src\\index.css",
-              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.css",
-              "RelativeToolTip": "frontend\\src\\index.css",
-              "ViewState": "AgIAACQAAAAAAAAAAAAAAEYAAAAKAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-09-28T14:24:46.663Z",
+              "DocumentIndex": 3,
+              "Title": "models.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\models.py",
+              "RelativeDocumentMoniker": "memory\\models.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\models.py",
+              "RelativeToolTip": "memory\\models.py",
+              "ViewState": "AgIAACUAAAAAAAAAAAAAAD8AAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-11-04T14:13:40.715Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Dashboard.jsx",
-              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\Dashboard.jsx",
-              "RelativeDocumentMoniker": "frontend\\src\\components\\Dashboard.jsx",
-              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\Dashboard.jsx",
-              "RelativeToolTip": "frontend\\src\\components\\Dashboard.jsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
-              "WhenOpened": "2025-09-28T14:16:12.997Z",
+              "Title": "a.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\a.py",
+              "RelativeDocumentMoniker": "memory\\a.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\a.py",
+              "RelativeToolTip": "memory\\a.py",
+              "ViewState": "AgIAADcCAAAAAAAAAAAAAFUCAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-11-04T11:52:12.997Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "Dashboard.css",
-              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\styles\\Dashboard.css",
-              "RelativeDocumentMoniker": "frontend\\src\\components\\styles\\Dashboard.css",
-              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\styles\\Dashboard.css",
-              "RelativeToolTip": "frontend\\src\\components\\styles\\Dashboard.css",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAADAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-09-28T13:50:40.458Z",
+              "Title": "compression_engine.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\compression_engine.py",
+              "RelativeDocumentMoniker": "memory\\services\\compression_engine.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\compression_engine.py",
+              "RelativeToolTip": "memory\\services\\compression_engine.py",
+              "ViewState": "AgIAACsAAAAAAAAAAAAAADcAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T14:15:10.504Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ai_services.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\ai_services.py",
+              "RelativeDocumentMoniker": "memory\\services\\ai_services.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\services\\ai_services.py",
+              "RelativeToolTip": "memory\\services\\ai_services.py",
+              "ViewState": "AgIAAP0BAAAAAAAAAAAkwBkCAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T14:14:19.657Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "urls.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\cloud_mvp\\urls.py",
+              "RelativeDocumentMoniker": "cloud_mvp\\urls.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\cloud_mvp\\urls.py",
+              "RelativeToolTip": "cloud_mvp\\urls.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T13:38:01.078Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "App.js",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\App.js",
+              "RelativeDocumentMoniker": "frontend\\src\\App.js",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\App.js",
+              "RelativeToolTip": "frontend\\src\\App.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-10-22T13:20:53.268Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "index.js",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.js",
+              "RelativeDocumentMoniker": "frontend\\src\\index.js",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\index.js",
+              "RelativeToolTip": "frontend\\src\\index.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-10-22T13:11:57.755Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "GlobalProtection.jsx",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\GlobalProtection.jsx",
+              "RelativeDocumentMoniker": "frontend\\src\\components\\GlobalProtection.jsx",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\GlobalProtection.jsx",
+              "RelativeToolTip": "frontend\\src\\components\\GlobalProtection.jsx",
+              "ViewState": "AgIAAEEAAAAAAAAAAAAAAEwAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2025-10-22T12:21:53.487Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "SecureFileViewer.jsx",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureFileViewer.jsx",
+              "RelativeDocumentMoniker": "frontend\\src\\components\\SecureFileViewer.jsx",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureFileViewer.jsx",
+              "RelativeToolTip": "frontend\\src\\components\\SecureFileViewer.jsx",
+              "ViewState": "AgIAACcAAAAAAAAAAAAAACoAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2025-10-22T12:08:53.256Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Dashboard.jsx",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\Dashboard.jsx",
+              "RelativeDocumentMoniker": "frontend\\src\\components\\Dashboard.jsx",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\Dashboard.jsx",
+              "RelativeToolTip": "frontend\\src\\components\\Dashboard.jsx",
+              "ViewState": "AgIAAIkBAAAAAAAAAAAAAC4BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2025-10-22T14:19:10.388Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "views.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\views.py",
+              "RelativeDocumentMoniker": "files\\views.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\views.py",
+              "RelativeToolTip": "files\\views.py",
+              "ViewState": "AgIAAEYFAAAAAAAAAAAwwGAGAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T10:49:43.659Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "memory_maintenance.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\management\\commands\\memory_maintenance.py",
+              "RelativeDocumentMoniker": "memory\\management\\commands\\memory_maintenance.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\management\\commands\\memory_maintenance.py",
+              "RelativeToolTip": "memory\\management\\commands\\memory_maintenance.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T14:15:35.634Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "tests.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\tests.py",
+              "RelativeDocumentMoniker": "memory\\tests.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\memory\\tests.py",
+              "RelativeToolTip": "memory\\tests.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T14:17:34.876Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "SecureViewer.jsx",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureViewer.jsx",
+              "RelativeDocumentMoniker": "frontend\\src\\components\\SecureViewer.jsx",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\frontend\\src\\components\\SecureViewer.jsx",
+              "RelativeToolTip": "frontend\\src\\components\\SecureViewer.jsx",
+              "ViewState": "AgIAAOQAAAAAAAAAAAAAAOoAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2025-10-22T11:10:16.888Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "urls.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\urls.py",
+              "RelativeDocumentMoniker": "files\\urls.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\files\\urls.py",
+              "RelativeToolTip": "files\\urls.py",
+              "ViewState": "AgIAACQAAAAAAAAAAAAAAEcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T10:49:02.637Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "middleware.py",
+              "DocumentMoniker": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\users\\security\\middleware.py",
+              "RelativeDocumentMoniker": "users\\security\\middleware.py",
+              "ToolTip": "C:\\Users\\Burak\\Desktop\\cloud_mvp\\users\\security\\middleware.py",
+              "RelativeToolTip": "users\\security\\middleware.py",
+              "ViewState": "AgIAACAAAAAAAAAAAAAAACYAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-10-22T10:28:11.454Z"
             }
           ]
         }

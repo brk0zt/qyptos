@@ -1,0 +1,424 @@
+﻿.search-engine {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.search-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+    .search-header h2 {
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        font-size: 2rem;
+    }
+
+    .search-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+.search-form {
+    margin-bottom: 30px;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 300px;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        /* Arkaplan rengini değiştirmiyoruz */
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .search-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+.search-type-select {
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.search-btn, .clear-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-btn {
+    background: var(--accent-color);
+    color: white;
+}
+
+    .search-btn:hover:not(:disabled) {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    .search-btn:disabled {
+        background: var(--border-color);
+        cursor: not-allowed;
+        transform: none;
+    }
+
+.clear-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+    .clear-btn:hover {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+.error-message {
+    background: var(--error-bg);
+    color: var(--error-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--error-color);
+}
+
+.search-results {
+    min-height: 400px;
+}
+
+.result-section {
+    margin-bottom: 40px;
+}
+
+    .result-section h3 {
+        color: var(--text-primary);
+        margin-bottom: 20px;
+        font-size: 1.4rem;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.result-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+    .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: var(--accent-color);
+    }
+
+.result-icon {
+    font-size: 24px;
+    color: var(--accent-color);
+    flex-shrink: 0;
+}
+
+.result-content {
+    flex: 1;
+}
+
+    .result-content h4 {
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        font-size: 1.1rem;
+        word-break: break-word;
+    }
+
+    .result-content p {
+        color: var(--text-secondary);
+        margin: 4px 0;
+        font-size: 0.9rem;
+    }
+
+.public-badge, .one-time-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.public-badge {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.one-time-badge {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.no-results, .search-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.no-results-icon, .placeholder-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.no-results h3, .search-placeholder h3 {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .search-engine {
+        padding: 15px;
+    }
+
+    .search-input-group {
+        flex-direction: column;
+    }
+
+    .search-input, .search-type-select, .search-btn, .clear-btn {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+    --bg-secondary: #2d3748;
+    --bg-tertiary: #4a5568;
+    --border-color: #4a5568;
+    --text-primary: #f7fafc;
+    --text-secondary: #cbd5e0;
+    --accent-color: #4299e1;
+    --accent-hover: #3182ce;
+    --error-bg: #742a2a;
+    --error-color: #fc8181;
+    --success-bg: #22543d;
+    --success-color: #68d391;
+    --warning-bg: #744210;
+    --warning-color: #f6ad55;
+}
+
+/* Light theme variables */
+[data-theme="light"] {
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f7fafc;
+    --border-color: #e2e8f0;
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --accent-color: #4299e1;
+    --accent-hover: #3182ce;
+    --error-bg: #fed7d7;
+    --error-color: #c53030;
+    --success-bg: #c6f6d5;
+    --success-color: #276749;
+    --warning-bg: #feebc8;
+    --warning-color: #dd6b20;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Daha duyarlı grid */
+    gap: 20px; /* Kartlar arası boşluk */
+    padding: 20px 0;
+}
+
+/* Kartın Genel Yapısı */
+.result-card {
+    display: flex;
+    flex-direction: column; /* İçeriği dikey olarak hizalar: Önizleme üstte, içerik altta */
+    background: var(--bg-tertiary); /* Koyu arkaplan */
+    border-radius: 12px; /* Daha yumuşak köşeler */
+    overflow: hidden; /* İçerik taşmasını engeller */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); /* Daha belirgin gölge */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    text-align: left;
+    height: 100%; /* Grid içinde eşit yükseklik */
+    border: 1px solid var(--border-color); /* Hafif çerçeve */
+}
+
+    .result-card:hover {
+        transform: translateY(-5px); /* Hover'da daha belirgin yükselme efekti */
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4); /* Hover'da daha güçlü gölge */
+    }
+
+/* Önizleme Konteyneri */
+.file-preview-container {
+    width: 100%;
+    height: 180px; /* Sabit bir önizleme yüksekliği */
+    background: var(--bg-secondary); /* Önizleme arka planı */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    border-bottom: 1px solid var(--border-color); /* Önizleme ile içerik arasında çizgi */
+}
+
+/* Resim Önizlemeleri */
+.preview-image {
+    width: 100%;
+    height: 100%;
+    background-size: cover; /* Resmi kutuya sığacak şekilde kırpar */
+    background-position: center;
+    transition: transform 0.3s ease;
+}
+
+.result-card:hover .preview-image {
+    transform: scale(1.08); /* Hover'da hafif büyütme efekti */
+}
+
+/* Büyük İkonlar (Video, Ses, PDF, Doküman) */
+.preview-icon-large {
+    font-size: 4rem; /* İkon boyutu büyütüldü */
+    color: var(--accent-color); /* Ana renkte ikonlar */
+    opacity: 0.9;
+    /* İkonun ortada görünmesini sağlar, eğer arka plan resim yerine ikon varsa */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* İçerik Alanı */
+.result-content {
+    padding: 15px 20px; /* İç ve yan boşluklar */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Alt içeriğin kalan tüm boşluğu kaplamasını sağlar */
+}
+
+    .result-content h4 {
+        font-size: 1.2rem; /* Başlık boyutu büyütüldü */
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+
+.file-owner {
+    font-size: 0.95rem; /* Kullanıcı adı boyutu */
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+    .file-owner i {
+        margin-right: 7px;
+        color: var(--accent-color); /* İkon rengi */
+    }
+
+/* İstatistikler */
+.file-stats {
+    display: flex;
+    gap: 18px; /* İstatistikler arası boşluk */
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin-top: auto; /* İstatistikleri alta iter */
+    padding-top: 10px; /* Üstten boşluk */
+    border-top: 1px solid var(--border-color); /* Üstte ince çizgi */
+    margin-bottom: 10px;
+}
+
+    .file-stats .stat i {
+        margin-right: 5px;
+        color: var(--accent-color);
+    }
+
+/* Durum Rozetleri (Badges) */
+.file-badges {
+    display: flex;
+    flex-wrap: wrap; /* Rozetlerin sığmazsa alt satıra geçmesini sağlar */
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.badge {
+    font-size: 0.7rem; /* Rozet yazısı boyutu */
+    padding: 4px 10px; /* Rozet boşlukları */
+    border-radius: 5px; /* Daha yumuşak rozet köşeleri */
+    font-weight: 700; /* Daha kalın yazı */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--accent-color-light); /* Varsayılan rozet rengi */
+    color: var(--text-primary);
+}
+
+.badge-one-time {
+    background: #4CAF50; /* Tek gösterimlik için yeşil */
+    color: #fff;
+}
+
+.badge-password {
+    background: #FF5722; /* Şifreli için turuncu-kırmızı */
+    color: #fff;
+}
+
+.preview-image-tag {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Resmi kutuyu dolduracak şekilde büyüt */
+    display: block;
+    border-radius: 6px;
+    /* Eğer resim hala görünmüyorsa: max-width: 100%; max-height: 100%; ekle */
+}
+
+.preview-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}

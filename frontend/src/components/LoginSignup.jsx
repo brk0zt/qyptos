@@ -15,7 +15,7 @@ function LoginSignup({ onKayit }) {
             ...prev,
             [name]: value
         }));
-    };
+    }; // BU FONKSİYON BURADA BİTMELİ - FAZLA KOD YOK!
 
     // Tarayıcı çerezlerinden CSRF jetonunu çeken yardımcı fonksiyon
     const getCSRFToken = () => {
@@ -31,59 +31,88 @@ function LoginSignup({ onKayit }) {
         e.stopPropagation();
 
         try {
+            console.log('🔄 LOGIN İŞLEMİ BAŞLATILIYOR...');
+            console.log('📧 Email:', formData.email);
+            console.log('🔐 Password:', '*'.repeat(formData.password.length));
+
             const endpoint = isLogin ? 'login' : 'signup';
             const url = `http://localhost:8001/api/auth/${endpoint}/`;
-
-            console.log(`${isLogin ? 'Login' : 'Signup'} attempt:`, formData);
 
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',  // Cookie'ler için önemli
+                credentials: 'include',
                 body: JSON.stringify(isLogin ? {
-                    email: formData.email,  // LoginView artık email bekliyor
+                    email: formData.email,
                     password: formData.password
                 } : formData)
             });
 
-            console.log('Response status:', response.status);
+            console.log('📡 RESPONSE STATUS:', response.status);
+            console.log('📡 RESPONSE HEADERS:', response.headers);
 
-            // Önce response'ın JSON olup olmadığını kontrol et
             const contentType = response.headers.get('content-type');
+            console.log('📋 CONTENT TYPE:', contentType);
+
             if (contentType && contentType.includes('application/json')) {
                 const data = await response.json();
-                console.log('Response data:', data);
+                console.log('📦 TAM RESPONSE DATA:', data);
 
-                if (response.ok && data.success) {
+                if (response.ok) {
                     if (isLogin) {
-                        // JWT token'ı localStorage'a kaydet
-                        localStorage.setItem('access_token', data.access);
-                        localStorage.setItem('refresh_token', data.refresh);
+                        // ⚠️ KRİTİK: Token'ları kontrol et ve kaydet
+                        console.log('🔑 ACCESS TOKEN:', data.access);
+                        console.log('🔄 REFRESH TOKEN:', data.refresh);
+                        console.log('👤 USER DATA:', data.user);
+
+                        if (!data.access) {
+                            console.error('❌ ACCESS TOKEN ALINAMADI!');
+                            alert('Backend access token döndürmedi!');
+                            return;
+                        }
+
+                        if (!data.refresh) {
+                            console.error('❌ REFRESH TOKEN ALINAMADI!');
+                            alert('Backend refresh token döndürmedi!');
+                            return;
+                        }
+
+                        // Token'ları kaydet
+                        localStorage.setItem('token', data.access); // 'access_token' yerine 'token'
+                        localStorage.setItem('refresh', data.refresh); // 'refresh_token' yerine 'refresh'
                         localStorage.setItem('user', JSON.stringify(data.user));
 
+                        // Kaydedildiğini kontrol et
+                        console.log('✅ LOCALSTORAGE KONTROL:');
+                        console.log('   - atoken:', localStorage.getItem('token') ? '✅ VAR' : '❌ YOK');
+                        console.log('   - refresh:', localStorage.getItem('refresh') ? '✅ VAR' : '❌ YOK');
+                        console.log('   - user:', localStorage.getItem('user') ? '✅ VAR' : '❌ YOK');
+
+                        console.log('🎯 DASHBOARDA YÖNLENDİRİLİYOR...');
                         window.location.href = '/dashboard';
+
                     } else {
                         alert('Kayıt başarılı! Giriş yapabilirsiniz.');
                         setIsLogin(true);
                         setFormData({ username: '', email: '', password: '' });
                     }
                 } else {
-                    alert(data.message || `İşlem başarısız! Status: ${response.status}`);
+                    console.error('❌ RESPONSE NOT OK:', data);
+                    alert(data.detail || data.message || `İşlem başarısız! Status: ${response.status}`);
                 }
             } else {
                 const text = await response.text();
-                console.error('Beklenmeyen yanıt formatı:', text);
+                console.error('❌ BEKLENMEYEN FORMAT:', text);
                 alert(`Sunucu hatası: ${response.status}. Lütfen konsolu kontrol edin.`);
             }
 
         } catch (error) {
-            console.error('Auth error:', error);
+            console.error('❌ AUTH ERROR:', error);
             alert(`İşlem sırasında hata oluştu: ${error.message}`);
         }
     };
-
     return (
         <div className="login-signup-container">
             {/* ... Formun geri kalanı ... */}
@@ -94,14 +123,14 @@ function LoginSignup({ onKayit }) {
                     <form onSubmit={handleSubmit}>
                         {/* ... Giriş alanları ... */}
                         <div className="input-group">
-                            <label>E-posta</label>
+                            <label>E-posta/Telefon Numarası</label>
                             <i className="fas fa-envelope input-icon"></i>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
-                                placeholder="E-posta adresinizi girin"
+                                placeholder="E-posta adresinizi ya da telefon numaranızı girin"
                                 required
                             />
                         </div>
@@ -158,14 +187,14 @@ function LoginSignup({ onKayit }) {
                         </div>
 
                         <div className="input-group">
-                            <label>E-posta</label>
+                            <label>E-posta/Telefon Numarası</label>
                             <i className="fas fa-envelope input-icon"></i>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
-                                placeholder="E-posta adresinizi girin"
+                                placeholder="E-posta adresinizi ya da telefon numaranızı girin"
                                 required
                             />
                         </div>

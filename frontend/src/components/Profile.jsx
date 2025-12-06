@@ -1,9 +1,8 @@
 ﻿import React, { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext";
-import { useApi } from "../utils/api";
 
 export default function Profile() {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [error, setError] = useState("");
 
@@ -30,37 +29,18 @@ export default function Profile() {
         if (token) fetchProfile();
     }, [token]);
 
-    useEffect(() => {
-        const loadProfile = async () => {
-            const res = await apiFetch("http://127.0.0.1:8001/auth/profile/");
-            if (res.ok) {
-                const data = await res.json();
-                setProfile(data);
-            }
-        };
-        loadProfile();
-    }, [apiFetch]);
-
-    if (!profile) return <p>Yükleniyor...</p>;
+    if (error) return <div className="chunk-downloader"><p className="text-red-500">{error}</p></div>;
+    if (!profile) return <div className="chunk-downloader"><p>Yükleniyor...</p></div>;
 
     return (
-        <div className="p-4 bg-white rounded shadow">
-            <h2 className="text-lg font-bold mb-2">👤 Profil Bilgileri</h2>
-            <p><b>ID:</b> {profile.id}</p>
-            <p><b>Kullanıcı Adı:</b> {profile.username}</p>
-            <p><b>E-posta:</b> {profile.email}</p>
-        </div>
-    );
-
-    if (error) return <p className="text-red-500">{error}</p>;
-    if (!profile) return <p>Yükleniyor...</p>;
-
-    return (
-        <div className="p-4 bg-white rounded shadow">
-            <h2 className="text-lg font-bold mb-2">👤 Profil Bilgileri</h2>
-            <p><b>ID:</b> {profile.id}</p>
-            <p><b>Kullanıcı Adı:</b> {profile.username}</p>
-            <p><b>E-posta:</b> {profile.email}</p>
+        <div className="chunk-downloader">
+            <h2><i className="fas fa-user"></i> Profil Bilgileri</h2>
+            <div className="user-section">
+                <h4>Kullanıcı Bilgileri:</h4>
+                <p><strong>ID:</strong> {profile.id}</p>
+                <p><strong>Kullanıcı Adı:</strong> {profile.username}</p>
+                <p><strong>E-posta:</strong> {profile.email}</p>
+            </div>
         </div>
     );
 }

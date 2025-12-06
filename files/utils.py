@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from PIL import Image, ImageDraw, ImageFont
 
 def add_watermark(input_image_path, output_image_path, username):

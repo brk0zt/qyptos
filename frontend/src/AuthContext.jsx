@@ -15,95 +15,49 @@ export const AuthProvider = ({ children }) => {
     const [refreshToken, setRefreshToken] = useState(() => {
         return localStorage.getItem("refresh") || null;
     });
+    const [loading, setLoading] = useState(true); // loading state'ini buraya taşı
+
+    // Loading state'ini yönet
+    useEffect(() => {
+        // İlk yüklemede loading'i false yap
+        setLoading(false);
+    }, []);
 
     const login = (userData, accessToken, newRefreshToken) => {
+        console.log('🔐 AuthContext login çağrıldı');
         setUser(userData);
         setToken(accessToken);
         setRefreshToken(newRefreshToken);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", accessToken);
         localStorage.setItem("refresh", newRefreshToken);
+        console.log('✅ AuthContext - Kullanıcı bilgileri kaydedildi');
     };
 
-    const logout = async () => {
-        try {
-            if (refreshToken) {
-                await fetch("http://127.0.0.1:8001/auth/logout/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ refresh: refreshToken }),
-                });
-            }
-        } catch (err) {
-            console.error("Logout istegi basarisiz:", err);
-        }
-
+    const logout = () => {
+        console.log('🚪 AuthContext logout çağrıldı');
         setUser(null);
         setToken(null);
         setRefreshToken(null);
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         localStorage.removeItem("refresh");
+        console.log('✅ AuthContext - Tüm veriler temizlendi');
+
+        // Login sayfasına yönlendir
+        window.location.href = '/login';
     };
 
-    const refreshAccessToken = async () => {
-        if (!refreshToken) {
+    // Basit token kontrolü
+    const checkTokenValidity = async () => {
+        const currentToken = localStorage.getItem('token');
+        if (!currentToken) {
+            console.log('❌ Token bulunamadı');
             logout();
-            return;
+            return false;
         }
-
-        try {
-            const res = await fetch("http://127.0.0.1:8001/api/token/refresh/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ refresh: refreshToken }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setToken(data.access);
-                localStorage.setItem("token", data.access);
-                return data.access;
-            } else {
-                logout();
-            }
-        } catch (err) {
-            console.error("Token yenileme hatası:", err);
-            logout();
-        }
+        return true;
     };
-
-    // Token yenileme interval'i
-    useEffect(() => {
-        if (refreshToken) {
-            const interval = setInterval(refreshAccessToken, 4 * 60 * 1000); // 4 dakikada bir
-            return () => clearInterval(interval);
-        }
-    }, [refreshToken]);
-
-    // Başlangıçta token kontrolü (isteğe bağlı)
-    useEffect(() => {
-        if (token && refreshToken) {
-            // Token hala geçerli mi kontrol et
-            const checkTokenValidity = async () => {
-                try {
-                    const res = await fetch("http://127.0.0.1:8001/api/verify-token/", {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    if (!res.ok) {
-                        await refreshAccessToken();
-                    }
-                } catch (err) {
-                    console.error("Token geçerlilik kontrolü hatası:", err);
-                }
-            };
-
-            checkTokenValidity();
-        }
-    }, []);
 
     // Context değerini açıkça tanımlayın
     const value = {
@@ -112,9 +66,10 @@ export const AuthProvider = ({ children }) => {
         refreshToken,
         login,
         logout,
-        refreshAccessToken,
+        checkTokenValidity,
         redirectTo,
-        setRedirectTo
+        setRedirectTo,
+        loading
     };
 
     return (

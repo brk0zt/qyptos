@@ -1,62 +1,85 @@
-﻿import React, { useState, useEffect } from "react";
-// Bu import'ların, Card ve Button dosyaların ile aynı klasörde olması gerekiyor
-import { Card, CardHeader, CardContent } from './ui/Card';
-import { Button } from './ui/Button';
+﻿import React, { useEffect, useState } from "react";
+import { useApi } from '../hooks/useApi';
+import { Card, CardContent } from "./ui/Card";
+import { Button } from "./ui/Button";
 
-const AdPlayer = ({ apiBase, userEmail }) => {
-    const [currentAd, setCurrentAd] = useState(null);
-    const [showSkip, setShowSkip] = useState(false);
+export default function AdPlayer() {
+    const { apiFetch } = useApi();
+    const [ad, setAd] = useState(null);
+    const [countdown, setCountdown] = useState(0);
+
+    // Reklam çekme
+    const loadAd = async () => {
+        const res = await apiFetch("http://127.0.0.1:8001/ads/");
+        if (res.ok) {
+            const data = await res.json();
+            setAd(data);
+            setCountdown(data.duration); // süre başlat
+        } else {
+            setAd(null);
+        }
+    };
 
     useEffect(() => {
-        // Mock API call to get ads
-        const fetchAds = async () => {
-            const res = await fetch(`${apiBase}/ads/?user=${userEmail}`);
-            const data = await res.json();
-            if (data.ads && data.ads.length > 0) {
-                setCurrentAd(data.ads[0]);
-                // Display the "Skip" button after 5 seconds
-                setTimeout(() => {
-                    setShowSkip(true);
-                }, 5000);
-            }
-        };
-        fetchAds();
-    }, [apiBase, userEmail]);
+        loadAd();
+    }, []);
 
-    // Oynatıcı bileşeni
+    // Geri sayım
+    useEffect(() => {
+        if (countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [countdown]);
+
+    if (!ad) {
+        return <p className="text-gray-500">Şu anda reklam bulunmuyor.</p>;
+    }
+
+    const isVideo = ad.media.endsWith(".mp4") || ad.media.endsWith(".webm");
+    const isImage = ad.media.endsWith(".jpg") || ad.media.endsWith(".jpeg") || ad.media.endsWith(".png");
+
+    const handleClick = async () => {
+        await apiFetch(`http://127.0.0.1:8001/ads/${ad.id}/click/`, {
+            method: "POST",
+        });
+        window.open(ad.link, "_blank", "noopener,noreferrer");
+    };
+
     return (
-        <div className="flex flex-col items-center justify-center p-6 space-y-4">
-            {currentAd ? (
-                <Card className="w-full max-w-2xl">
-                    <CardHeader>
-                        <h3 className="text-lg font-semibold">
-                            Oynatılıyor: {currentAd.title}
-                        </h3>
-                    </CardHeader>
-                    <CardContent className="relative">
-                        <div className="absolute top-2 left-2 text-white text-xs font-bold z-10 pointer-events-none select-none opacity-60">
-                            {userEmail}
-                        </div>
-                        <video
-                            src={currentAd.videoUrl}
-                            controls
-                            autoPlay
-                            className="w-full rounded-lg shadow-md"
-                            onClick={() => alert("⚠ Ekran kaydı veya PrintScreen yasaktır!")}
-                        />
-                        {showSkip && (
-                            <div className="mt-4">
-                                <Button onClick={() => setCurrentAd(null)}>Geç</Button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            ) : (
-                <p className="text-center font-medium">Reklam yok veya oynatma bitti.</p>
-            )}
-        </div>
-    );
-};
+        <Card className="max-w-lg mx-auto shadow-lg">
+            <CardContent className="p-4 space-y-3 text-center">
+                <h3 className="font-bold text-lg">{ad.title}</h3>
 
-export default AdPlayer;
+                {/* Reklam içeriği */}
+                {isVideo && (
+                    <video
+                        src={ad.media}
+                        autoPlay
+                        controls={false}
+                        muted
+                        className="w-full rounded"
+                    />
+                )}
+                {isImage && (
+                    <img src={ad.media} alt={ad.title} className="w-full rounded" />
+                )}
+
+                {/* Geri sayım */}
+                {countdown > 0 ? (
+                    <p className="text-sm text-gray-600">
+                        Reklam {countdown} saniye sonra geçilebilir
+                    </p>
+                ) : (
+                    <Button asChild className="mt-2">
+                        <a href={ad.link} target="_blank" rel="noopener noreferrer">
+                            Reklama Git →
+                        </a>
+                    </Button>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 

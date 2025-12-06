@@ -6,9 +6,10 @@ import { Textarea } from "./Textarea";
 import SingleViewMedia from "./SingleViewMedia";
 import { Label } from "./ui/Label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/Select";
-import useApi from "./useApi";
+import { useApi } from "../hooks/useApi"; // Yeni useApi hook'u
+import { groupAPI, fileAPI, authAPI } from "../utils/api"; 
 
-const GroupContent = ({ groupId, apiBase, userEmail }) => {
+const GroupContent = ({ groupId }) => {
     const [authorized, setAuthorized] = useState(false);
     const [files, setFiles] = useState([]);
     const [comments, setComments] = useState({});
@@ -19,61 +20,82 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
     const [duration, setDuration] = useState("unlimited");
     const [watermark, setWatermark] = useState(true);
     const [message, setMessage] = useState("");
-    const { apiFetch } = useApi();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
+    // GroupContent.jsx - useEffect içinde
     useEffect(() => {
         const checkAuthAndFetchFiles = async () => {
             try {
-                const res = await fetch(`${apiBase}/groups/${groupId}/check-auth/?user=${userEmail}`);
-                const data = await res.json();
-                if (data.authorized) {
-                    setAuthorized(true);
-                    // Yetki başarılıysa dosyaları getir
-                    const filesRes = await fetch(`${apiBase}/groups/${groupId}/files/`);
-                    const filesData = await filesRes.json();
-                    setFiles(filesData);
-                } else {
+                setLoading(true);
+
+                // Demo mod kontrolü
+                const token = localStorage.getItem('token');
+                if (!token) {
                     setAuthorized(false);
+                    setLoading(false);
+                    return;
+                }
+
+                // Kullanıcı bilgisini al
+                const userResponse = await authAPI.checkAuth();
+                setUser(userResponse.data);
+
+                if (groupId) {
+                    const authResponse = await groupAPI.checkGroupAuth(groupId);
+                    if (authResponse.data.authorized) {
+                        setAuthorized(true);
+                        const filesResponse = await groupAPI.getGroupFiles(groupId);
+                        setFiles(filesResponse.data);
+                    } else {
+                        setAuthorized(false);
+                    }
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Auth veya dosya yükleme hatası:", error);
                 setAuthorized(false);
+
+                // Demo data göster
+                if (error.response?.status === 401 || !localStorage.getItem('token')) {
+                    const demoFiles = [
+                        { id: 1, filename: "demo-file-1.jpg", uploaded_by: "Demo User", one_time_view: false },
+                        { id: 2, filename: "demo-file-2.png", uploaded_by: "Demo User", one_time_view: true }
+                    ];
+                    setFiles(demoFiles);
+                    setAuthorized(true);
+                }
+            } finally {
+                setLoading(false);
             }
         };
 
-        checkAuthAndFetchFiles();
-    }, [apiBase, groupId, userEmail]);
+        if (groupId) {
+            checkAuthAndFetchFiles();
+        }
+    }, [groupId]);
 
-    const handleFileUpload = async (e) => {
-        if (!authorized) return;
-        const uploadedFile = e.target.files[0];
-        if (!uploadedFile) return;
+    const handleFileUpload = async (file) => {
+
+        if (!authorized || !groupId || !file) {
+            setMessage("❌ Lütfen dosya seçin ve yetkinizi kontrol edin.");
+            return;
+        }
 
         const formData = new FormData();
-        formData.append("file", uploadedFile);
+        formData.append("file", file);
         formData.append("one_time_view", oneTime);
         formData.append("view_duration", duration);
         formData.append("watermark_enabled", watermark);
+        formData.append('can_download', canDownload);
 
         try {
-            const res = await apiFetch(`${apiBase}/groups/${groupId}/upload/`, {
-                method: "POST",
-                body: formData,
-            });
+            const response = await fileAPI.uploadFile(groupId, formData);
+            setMessage(`✅ Dosya yüklendi!`);
 
-            if (res.ok) {
-                const data = await res.json();
-                setMessage(`✅ Dosya yüklendi (tek seferlik: ${data.one_time_view}, süre: ${data.view_duration}, watermark: ${data.watermark_enabled})`);
-                setFile(null);
-
-                // Dosya listesini güncelle
-                const updated = await fetch(`${apiBase}/groups/${groupId}/files/`).then((r) =>
-                    r.json()
-                );
-                setFiles(updated);
-            } else {
-                setMessage("❌ Dosya yüklenemedi.");
-            }
+            // Dosya listesini güncelle
+            const filesResponse = await groupAPI.getGroupFiles(groupId);
+            setFiles(filesResponse.data);
+            setFile(null);
         } catch (error) {
             console.error("Dosya yükleme hatası:", error);
             setMessage("❌ Dosya yüklenirken hata oluştu.");
@@ -83,9 +105,8 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
     const fetchComments = async (fileId) => {
         setSelectedFileId(fileId);
         try {
-            const res = await fetch(`${apiBase}/groups/files/${fileId}/comments/`);
-            const data = await res.json();
-            setComments((prev) => ({ ...prev, [fileId]: data }));
+            const response = await fileAPI.getFileComments(fileId);
+            setComments((prev) => ({ ...prev, [fileId]: response.data }));
         } catch (error) {
             console.error("Yorumlar yüklenirken hata:", error);
         }
@@ -94,17 +115,17 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
     const postComment = async () => {
         if (!authorized || !selectedFileId || !newComment.trim()) return;
         try {
-            await fetch(`${apiBase}/groups/files/${selectedFileId}/comments/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: newComment, author: userEmail }),
-            });
+            await fileAPI.addComment(selectedFileId, newComment);
             setNewComment("");
-            fetchComments(selectedFileId);
+            fetchComments(selectedFileId); // Yorumları yenile
         } catch (error) {
             console.error("Yorum gönderilirken hata:", error);
         }
     };
+
+    if (loading) {
+        return <div>Yükleniyor...</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -116,7 +137,10 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                             <h3 className="text-lg font-semibold">Dosya Yükle</h3>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <Input type="file" onChange={(e) => setFile(e.target.files[0])} />
+                            <Input
+                                type="file"
+                                onChange={(e) => setFile(e.target.files[0])}
+                            />
 
                             <div className="flex items-center space-x-2">
                                 <input
@@ -156,7 +180,9 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                                 <Label htmlFor="watermark">Watermark ekle</Label>
                             </div>
 
-                            <Button onClick={handleFileUpload}>Yükle</Button>
+                            <Button onClick={handleFileUpload} disabled={!file}>
+                                Yükle
+                            </Button>
                             {message && <p className="text-sm">{message}</p>}
                         </CardContent>
                     </Card>
@@ -174,14 +200,14 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm text-gray-500">
-                                        Yükleyen: {file.uploaded_by?.username}
+                                        Yükleyen: {file.uploaded_by}
                                     </p>
 
                                     {/* Tek gösterimlik medya */}
                                     {file.one_time_view && !file.has_been_viewed && (
                                         <SingleViewMedia
                                             mediaUrl={file.view_url}
-                                            userEmail={userEmail}
+                                            userEmail={user?.email}
                                             onConsumed={() =>
                                                 alert("Medya tek gösterimlik olarak kullanıldı ve artık erişilemez.")
                                             }
@@ -200,12 +226,12 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    {(comments[selectedFileId] || []).map((c, i) => (
+                                    {(comments[selectedFileId] || []).map((comment, index) => (
                                         <div
-                                            key={i}
+                                            key={index}
                                             className="p-2 border rounded-md bg-gray-50 text-sm"
                                         >
-                                            <span className="font-semibold">{c.author}:</span> {c.text}
+                                            <span className="font-semibold">{comment.author}:</span> {comment.text}
                                         </div>
                                     ))}
                                 </div>
@@ -223,7 +249,7 @@ const GroupContent = ({ groupId, apiBase, userEmail }) => {
                 </>
             ) : (
                 <p className="text-red-500 font-medium">
-                    ⚠ Bu grup içeriğine erişim yetkiniz yok.
+                    ⚠ Bu grup içeriğine erişim yetkiniz yok veya grup bulunamadı.
                 </p>
             )}
         </div>

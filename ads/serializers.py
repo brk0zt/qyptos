@@ -4,7 +4,7 @@ from .models import Ad, AdPlacement, AdImpression, AdClick, PublisherEarning
 class AdSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ad
-        fields = ['id','title','image','link','cpm','is_active','created_at']
+        fields = ['id','title','media','link','cpm','is_active','created_at']
 
 class AdPlacementSerializer(serializers.ModelSerializer):
     class Meta:

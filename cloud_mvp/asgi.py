@@ -3,17 +3,16 @@ import django
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-from django.core.asgi import get_asgi_application
-import notifications.routing
+from notifications.routing import websocket_urlpatterns
+import groups.routing  # WebSocket route'larýnýzý burada import edin
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cloud_mvp.settings")
-django.setup()
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloud_mvp.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    # "websocket": AuthMiddlewareStack(  # Bu kýsmý geçici olarak kapat
-    #     URLRouter(
-    #         routing.websocket_urlpatterns
-    #     )
-    # ),
-    })
+    "websocket": AuthMiddlewareStack(
+        URLRouter(
+            groups.routing.websocket_urlpatterns  # WebSocket URL'leriniz
+        )
+    ),
+})

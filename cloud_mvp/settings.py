@@ -1,10 +1,11 @@
-from pathlib import Path
+ï»¿from pathlib import Path
 from datetime import timedelta
 import os
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'dev-secret-key-change-in-prod'
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['*']
+REACT_BUILD_DIR = os.path.join(BASE_DIR, 'frontend', 'build')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -24,7 +25,8 @@ INSTALLED_APPS = [
     "channels",
     "notifications",
     "groups",
-        
+    'chat',    
+    'memory',
 ]
 
 MIDDLEWARE = [
@@ -36,13 +38,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.security.middleware.CameraSecurityMiddleware',
 ]
 
 ROOT_URLCONF = 'cloud_mvp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'frontend', 'build')],
         'APP_DIRS': True,
         'OPTIONS': {'context_processors': [
             'django.template.context_processors.debug',
@@ -54,41 +57,47 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = 'cloud_mvp.wsgi.application'
 ASGI_APPLICATION = "cloud_mvp.asgi.application"
-DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3','NAME': BASE_DIR / 'db.sqlite3',}}
+DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3',
+                         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),}}
 AUTH_PASSWORD_VALIDATORS = []
 LANGUAGE_CODE = 'tr'
 TIME_ZONE = 'Europe/Istanbul'
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'frontend', 'build', 'static'),
+]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+if not os.path.exists(MEDIA_ROOT):
+    os.makedirs(MEDIA_ROOT)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.CustomUser'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # JWT'yi (Simple JWT) kullanýyorsanýz, ana kimlik doðrulama sýnýfý budur.
+        # JWT'yi (Simple JWT) kullanÄ±yorsanÄ±z, ana kimlik doÄŸrulama sÄ±nÄ±fÄ± budur.
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',  # Ekle
-        # Eðer hem JWT hem de standart TokenAuthentication (DRF'in kendi token'ý) kullanýyorsanýz
-        # bu satýrý da ekleyin. Kullanmýyorsanýz silin.
+        # EÄŸer hem JWT hem de standart TokenAuthentication (DRF'in kendi token'Ä±) kullanÄ±yorsanÄ±z
+        # bu satÄ±rÄ± da ekleyin. KullanmÄ±yorsanÄ±z silin.
         # 'rest_framework.authentication.TokenAuthentication',
         
-        # Django session'larýný da kullanmak isterseniz (tarayýcýdan eriþim için):
+        # Django session'larÄ±nÄ± da kullanmak isterseniz (tarayÄ±cÄ±dan eriÅŸim iÃ§in):
         # 'rest_framework.authentication.SessionAuthentication', 
     ],
     
     'DEFAULT_PERMISSION_CLASSES': [
-        # Varsayýlan olarak tüm endpoint'leri korur.
+        # VarsayÄ±lan olarak tÃ¼m endpoint'leri korur.
         'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',  # Geçici: Tüm endpoint'lere eriþime izin ver
+        'rest_framework.permissions.AllowAny',  # GeÃ§ici: TÃ¼m endpoint'lere eriÅŸime izin ver
 
     ],
     
     'DEFAULT_RENDERER_CLASSES': [
-        # Tüm yanýtlarýn varsayýlan olarak JSON formatýnda gönderilmesini saðlar (API için standarttýr).
+        # TÃ¼m yanÄ±tlarÄ±n varsayÄ±lan olarak JSON formatÄ±nda gÃ¶nderilmesini saÄŸlar (API iÃ§in standarttÄ±r).
         'rest_framework.renderers.JSONRenderer',
     ],
     
@@ -96,23 +105,26 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'SIGNING_KEY': 'dev-secret-key-change-in-prod',  # BU SATIR Ã‡OK Ã–NEMLÄ°!
+    'ALGORITHM': 'HS256',
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
-        },
-    },
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
 }
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",      # React'in varsayýlan adresi
+    "http://localhost:3000",      # React'in varsayÄ±lan adresi
     "http://127.0.0.1:3000",
-    # Eðer React baþka bir adreste çalýþýyorsa onu da ekle
+    # EÄŸer React baÅŸka bir adreste Ã§alÄ±ÅŸÄ±yorsa onu da ekle
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_COOKIE_HTTPONLY = False 
@@ -142,7 +154,22 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8001",
 ]
-CSRF_COOKIE_DOMAIN = None # Varsayýlan olarak None býrakmak genellikle en iyisidir.
-CSRF_COOKIE_SAMESITE = 'None' # Modern tarayýcýlar için önerilir.
+CSRF_COOKIE_DOMAIN = None # VarsayÄ±lan olarak None bÄ±rakmak genellikle en iyisidir.
+CSRF_COOKIE_SAMESITE = 'None' # Modern tarayÄ±cÄ±lar iÃ§in Ã¶nerilir.
 SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = False
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+SECURITY_CONFIG = {
+    'ENABLE_CAMERA_MONITORING': True,
+    'MAX_NO_FACE_SECONDS': 3,
+    'ALLOW_SCREENSHOTS': False,
+}
+
+SECURE_VIEWER_CONFIG = {
+    'ENABLE_CANVAS_PROTECTION': True,
+    'ENABLE_CSS_DISTORTION': True,
+    'MAX_VIOLATIONS': 2,
+    'BLOCK_DURATION': 3600,  # 1 saat
+    'DETECT_SCREENSHOT_APIS': True,
+}
