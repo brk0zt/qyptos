@@ -1,0 +1,609 @@
+﻿import numpy as np
+from skimage.segmentation import slic
+from skimage.color import rgb2lab
+import matplotlib.pyplot as plt
+import torch
+from collections import defaultdict
+import torch.nn.functional as F
+from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv
+import torch.nn as nn
+import torch.optim as optim
+import math
+from oqs import oqs
+from skimage import io # Görüntü yükleme için
+import time
+
+# --- GÜNCELLEME 1: Düğüm Özellikleri (x) 0-1 Aralığına Normalize Ediliyor ---
+def create_superpixels(image_path, n_segments=500, compactness=10):
+    """
+    Belirtilen goruntu yolu icin SLIC algoritmasi ile superpiksel olusturur.
+    ...
+    """
+    try:
+        image = io.imread(image_path)
+        # Görüntünün float türüne dönüştürülmesi (0-255 -> 0.0-1.0 aralığı için gereklidir)
+        if image.dtype == np.uint8:
+             image = image.astype(np.float32) / 255.0
+
+    except FileNotFoundError:
+        print(f"HATA: '{image_path}' dosya yolu bulunamadi.")
+        return None, None, 0
+    
+    # SLIC, Lab renk uzayında daha iyi çalışır. 
+    # SLIC'e Lab görüntüsünü vermek yerine, genellikle RGB görüntüsü üzerinde çalışırız.
+    # Ancak burada RGB görüntü, float olarak (0-1) aralığına getirildi.
+    labels = slic(
+        image, 
+        n_segments=n_segments, 
+        compactness=compactness, 
+        enforce_connectivity=True,
+        sigma=0
+    )
+
+    num_superpixels = len(np.unique(labels))
+    
+    print(f"Basarili: {num_superpixels} adet superpiksel (dugum) olusturuldu.")
+
+    # Orijinal Görüntüyü (0-1 aralığında) döndürüyoruz
+    return image, labels, num_superpixels
+
+
+def visualize_superpixels(image, labels):
+    """Superpiksel sinirlarini orijinal goruntu uzerinde gorsellestirir."""
+    from skimage.segmentation import mark_boundaries
+    
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    # mark_boundaries için girdi görüntüsü 0-1 aralığında olmalıdır.
+    ax.imshow(mark_boundaries(image, labels, color=(1, 1, 1))) 
+    ax.set_title("Olusturulan Superpikseller (Dugumler)")
+    ax.axis('off')
+    plt.show()
+
+# --- GÜNCELLEME 2: Geri Oluşturma Hedefi (y_reco) için Kullanılacak Özellik Çıkarımı ---
+def extract_node_features(image_rgb, labels, num_nodes):
+    """
+    Her bir superpiksel icin ortalama RGB degerlerini hesaplar.
+    
+    Args:
+        image_rgb (numpy.ndarray): Orijinal RGB goruntu matrisi (0-1 araliginda).
+        ...
+        
+    Returns:
+        torch.Tensor: Her dugum icin ozellik vektorlerini iceren matris (PyG'deki 'x').
+        torch.Tensor: Geri olusturma hedefi olarak kullanilacak ortalama renkler (y_reco).
+    """
+    # Görüntü boyutları: (Yükseklik, Genişlik, Kanal=3)
+    height, width, channels = image_rgb.shape
+    
+    node_features_np = np.zeros((num_nodes, channels), dtype=np.float32)
+    pixel_counts = np.zeros(num_nodes, dtype=np.int32)
+
+    # 1. Pikselleri Süperpiksel Etiketine Göre Gruplama
+    for i in range(height):
+        for j in range(width):
+            label = labels[i, j]
+            node_features_np[label] += image_rgb[i, j]
+            pixel_counts[label] += 1
+
+    # 2. Ortalama Hesaplama (Toplam/Sayı)
+    pixel_counts_expanded = pixel_counts[:, np.newaxis] 
+    
+    node_features_np = np.divide(
+        node_features_np, 
+        pixel_counts_expanded, 
+        out=node_features_np, 
+        where=pixel_counts_expanded != 0 
+    )
+    
+    print(f"Basarili: Dugum ozellik matrisi boyutu: {node_features_np.shape}")
+
+    # PyTorch Geometric için Tensor'a dönüştürme.
+    # Bu, hem modelin girdisi (`x`) hem de geri oluşturma hedefi (`y_reco`) olacaktır.
+    node_features_tensor = torch.tensor(node_features_np, dtype=torch.float)
+    
+    # y_reco: Süperpikselin orijinal ortalama rengini tutar (Geri oluşturma hedefi)
+    y_reco = node_features_tensor.clone()
+
+    return node_features_tensor, y_reco # İki çıktı döndürülüyor
+
+
+def create_edge_index(labels):
+    """
+    Superpiksel etiketlerine dayanarak birbirine temas eden superpiksel ciftlerini (kenarlari) bulur.
+    ...
+    """
+    height, width = labels.shape
+    adj_set = set() 
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)] 
+
+    for r in range(height):
+        for c in range(width):
+            src_label = labels[r, c]
+            
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc  
+                
+                if 0 <= nr < height and 0 <= nc < width:
+                    dest_label = labels[nr, nc]
+                    
+                    if src_label != dest_label:
+                        edge1 = (int(src_label), int(dest_label))
+                        edge2 = (int(dest_label), int(src_label))
+                        
+                        adj_set.add(edge1)
+                        adj_set.add(edge2)
+
+    source_nodes = [edge[0] for edge in adj_set]
+    target_nodes = [edge[1] for edge in adj_set]
+    
+    edge_index = torch.tensor([source_nodes, target_nodes], dtype=torch.long)
+    
+    print(f"Basarili: Toplam {len(adj_set)} adet simetrik kenar olusturuldu.")
+    print(f"PyG 'edge_index' boyutu: {edge_index.shape}")
+    
+    return edge_index
+
+
+def calculate_edge_weights(x, edge_index):
+    """
+    Kenar agirliklarini, bagli oldugu dugumlerin (superpiksellerin) ozellik vektorleri 
+    (ortalama RGB) arasindaki Oklid Mesafesi (L2 norm) olarak hesaplar.
+    ...
+    """
+    source_nodes = edge_index[0]
+    target_nodes = edge_index[1]
+
+    source_features = x[source_nodes]
+    target_features = x[target_nodes]
+
+    diff_features = source_features - target_features
+
+    edge_weights = torch.norm(diff_features, p=2, dim=1)
+    
+    print(f"Basarili: Kenar agirlik vektoru boyutu: {edge_weights.shape}")
+
+    return edge_weights
+
+def intelligent_prune_edges(x, edge_index, edge_weights, compression_ratio=0.7):
+    """
+    Kenar agirliklarina (onem puanlarina) gore iliskileri akillica kirpar (seyreklestirir).
+    ...
+    """
+    scores = edge_weights.cpu().numpy()
+    
+    # compression_ratio = 0.7 ise, en düşük %30'luk puanı threshold olarak belirle.
+    threshold = np.percentile(scores, (compression_ratio * 100))
+    
+    # Sadece threshold değerinden büyük veya eşit olan kenarları koru (En önemli/farklı ilişkiler)
+    mask = edge_weights >= threshold
+
+    pruned_edge_index = edge_index[:, mask]
+    pruned_edge_weights = edge_weights[mask]
+    
+    original_edges = edge_index.size(1)
+    pruned_edges = pruned_edge_index.size(1)
+    pruning_percentage = 1 - (pruned_edges / original_edges)
+    
+    print(f"\n--- Akilli Kirpma Sonucu ---")
+    print(f"Orijinal Kenar Sayisi: {original_edges}")
+    print(f"Kirpilmis Kenar Sayisi: {pruned_edges}")
+    print(f"Seyreklestirme Orani (Kirpilan): %{pruning_percentage * 100:.2f}")
+    
+    return pruned_edge_index, pruned_edge_weights
+
+def calculate_node_centrality(labels, num_nodes):
+    """
+    Her dugum icin goruntu merkezine olan yakinliga dayali bir onem puani hesaplar.
+    ...
+    """
+    height, width = labels.shape
+    center_y, center_x = height / 2, width / 2
+    
+    y_coords_sum = np.zeros(num_nodes)
+    x_coords_sum = np.zeros(num_nodes)
+    pixel_counts = np.zeros(num_nodes)
+
+    for r in range(height):
+        for c in range(width):
+            label = labels[r, c]
+            y_coords_sum[label] += r
+            x_coords_sum[label] += c
+            pixel_counts[label] += 1
+
+    pixel_counts[pixel_counts == 0] = 1 
+    
+    sp_centers_y = y_coords_sum / pixel_counts
+    sp_centers_x = x_coords_sum / pixel_counts
+    
+    distances = np.sqrt((sp_centers_y - center_y)**2 + (sp_centers_x - center_x)**2)
+    
+    max_distance = np.sqrt(center_y**2 + center_x**2)
+    
+    centrality_score_np = 1 - (distances / max_distance)
+    
+    print(f"Basarili: Dugum merkezilik puanlari hesaplandi.")
+    
+    return torch.tensor(centrality_score_np, dtype=torch.float)
+
+# --- Hafifletilmiş Transformer Encoder Tanımı (Değişmedi) ---
+class LightweightTransformerEncoder(nn.Module):
+    def __init__(self, embed_dim, num_heads, dropout=0.1):
+        super().__init__()
+        
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim,         
+            nhead=num_heads,          
+            dim_feedforward=embed_dim * 4,
+            dropout=dropout,
+            batch_first=True          
+        )
+        
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=1)
+
+    def forward(self, x):
+        x = x.unsqueeze(0) 
+        x_global = self.transformer_encoder(x)
+        x_global = x_global.squeeze(0) 
+        return x_global
+
+# --- GÜNCELLEME 3: Semantic Decoder Tanımı (Ayrı Bir Modül Olarak Korundu) ---
+class SemanticDecoder(nn.Module):
+    def __init__(self, in_features, out_channels=3):
+        super().__init__()
+        # in_features: hidden_channels (GNN çıktısı boyutu)
+        # out_channels: 3 (RGB geri oluşturma)
+        self.fc1 = nn.Linear(in_features, in_features * 2) 
+        self.fc2 = nn.Linear(in_features * 2, out_channels) 
+    
+    def forward(self, x):
+        # x: (num_nodes, in_features)
+        x = F.relu(self.fc1(x))
+        # Sigmoid, çıktının 0 ile 1 arasında olmasını sağlar (normalize edilmiş renkler için).
+        return torch.sigmoid(self.fc2(x))
+
+class DifferentialPrivacy:
+    def __init__(self, epsilon=1.0, delta=1e-5):
+        self.epsilon = epsilon
+        self.delta = delta
+    
+    def add_noise(self, tensor):
+        sigma = math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
+        noise = torch.randn_like(tensor) * sigma
+        return tensor + noise
+
+# --- GÜNCELLEME 4: HybridGNNTransformer Sınıfına Decoder Entegrasyonu ---
+class HybridGNNTransformer(nn.Module):
+    def __init__(self, in_channels, hidden_channels, num_classes, num_heads=4):
+        # out_channels -> num_classes olarak yeniden adlandırıldı, karışıklığı önlemek için
+        super().__init__()
+        
+        # GNN Bileşeni (Yerel/Temas Eden İlişki Özellikleri)
+        self.gcn1 = GCNConv(in_channels, hidden_channels)
+        self.gcn2 = GCNConv(hidden_channels, hidden_channels) 
+        
+        # Transformer Bileşeni (Global/Uzun Menzilli İlişki Modelleme)
+        self.transformer = LightweightTransformerEncoder(
+            embed_dim=hidden_channels, 
+            num_heads=num_heads
+        )
+        
+        # Nihai Sınıflandırıcı (Semantic Segmentasyon için, isteğe bağlı)
+        self.classifier = nn.Linear(hidden_channels, num_classes)
+        
+        # !!! SEMANTİK SIKIŞTIRMA İÇİN YENİ EKLEME !!!
+        # Geri oluşturma (Decoder) modülü. hidden_channels'tan 3 kanallı (RGB) çıktıya gider.
+        self.decoder = SemanticDecoder(hidden_channels, out_channels=3)
+
+    def forward(self, data):
+        x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
+        
+        # --- GNN Aşaması (Yerel Bilgi İşleme) ---
+        x_local = F.relu(self.gcn1(x, edge_index, edge_attr))
+        x_local = F.dropout(x_local, p=0.5, training=self.training)
+        x_local = self.gcn2(x_local, edge_index, edge_attr) # (num_nodes, hidden_channels)
+
+        # --- Transformer Aşaması (Global Bilgi İşleme) ---
+        x_global = self.transformer(x_local)
+
+        # --- Birleştirme (Sıkıştırılmış Özellik Vektörü) ---
+        # Bu, sıkıştırılmış (compressed) anlamsal özellik vektörüdür.
+        x_final = x_local + x_global 
+        
+        # --- Çıktılar ---
+        # 1. Sınıflandırma Çıktısı (Segmentasyon)
+        out_cls = F.log_softmax(self.classifier(x_final), dim=1)
+        
+        # 2. Geri Oluşturma Çıktısı (Sıkıştırma)
+        # Sıkıştırılmış anlamsal özellikler, decoder'a gönderilir.
+        out_reco = self.decoder(x_final) 
+        
+        # Hem sınıflandırma hem de geri oluşturma çıktılarını döndür
+        return out_cls, out_reco
+
+
+def add_gaussian_noise(g, clip_norm, epsilon, delta):
+    """ Gradyanlara gizlilik butcesine göre Gaussian gurultusu ekler. (Degismedi)"""
+    sigma = (clip_norm * math.sqrt(2 * math.log(1 / delta))) / epsilon
+    noise = torch.randn_like(g) * sigma
+    return g + noise
+
+# --- GÜNCELLEME 5: Eğitim Döngüsünde (train_gcn_with_dp) Kayıp Fonksiyonu Değişikliği ---
+def train_gcn_with_dp(model, data, optimizer, num_epochs, dp_enabled=False, clip_norm=1.0, epsilon=1.0, delta=1e-5, lambda_reco=0.5):
+    """
+    Differential Privacy (DP) ile guclendirilmis, SEMANTIK SIKISTIRMA icin 
+    Geri Olusturma Kaybi (Reconstruction Loss) iceren egitim dongusu.
+    
+    Args:
+        ...
+        lambda_reco (float): Geri olusturma kaybinin (MSE) toplam kayiba olan agirligi.
+    """
+    
+    # Kayıp Fonksiyonları
+    # NLL Loss: Sınıflandırma için
+    # MSE Loss: Geri oluşturma (Reconstruction) için. Hedef (data.y_reco) ile modelin geri oluşturma çıktısı (out_reco) arasındaki farkı hesaplar.
+    classification_criterion = F.nll_loss
+    reconstruction_criterion = nn.MSELoss()
+    
+    # Model eğitimi
+    model.train()
+    for epoch in range(num_epochs):
+        optimizer.zero_grad()
+        
+        # Modelden iki çıktı alınır: sınıflandırma ve geri oluşturma
+        out_cls, out_reco = model(data)
+        
+        # 1. Sınıflandırma Kaybı (Sınıf Etiketi varsa)
+        # y: Sınıf etiketlerini tutan Tensör (PyG'de `data.y`)
+        cls_loss = classification_criterion(out_cls, data.y)
+        
+        # 2. Geri Oluşturma Kaybı
+        # y_reco: Orijinal süperpiksel ortalama renkleri (PyG'de `data.y_reco` olarak kabul edilecek)
+        reco_loss = reconstruction_criterion(out_reco, data.y_reco)
+        
+        # Toplam Kayıp = Sınıflandırma Kaybı + (lambda * Geri Oluşturma Kaybı)
+        total_loss = cls_loss + lambda_reco * reco_loss
+        
+        total_loss.backward()
+
+        if dp_enabled:
+            # DP Adımları (Değişmedi)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=clip_norm)
+            
+            for param in model.parameters():
+                if param.grad is not None:
+                    param.grad.data = add_gaussian_noise(
+                        param.grad.data, 
+                        clip_norm=clip_norm, 
+                        epsilon=epsilon, 
+                        delta=delta
+                    )
+
+        optimizer.step()
+        
+        if epoch % 20 == 0:
+            print(f'Epoch: {epoch:03d}, Toplam Kayip: {total_loss:.4f} (CLS: {cls_loss:.4f}, RECO: {reco_loss:.4f})')
+
+    print(f"\nDP: {dp_enabled} - Semantik Sikistirma Egitimi Tamamlandi!")
+    return model
+
+class LatticeCrypto:
+    def __init__(self, dimension=512):
+        self.dimension = dimension
+        try:
+            self.kem = oqs.KeyEncapsulation("Kyber512")
+            self.public_key = self.kem.generate_keypair()
+        except:
+            print("⚠️ OQS kütüphanesi yüklenemedi - simulation modu")
+            self.simulation_mode = True
+    
+    def encrypt(self, data):
+        if hasattr(self, 'simulation_mode'):
+            return {"simulated": True, "data": data}
+        ciphertext, shared_secret = self.kem.encap_secret(self.public_key)
+        return {"ciphertext": ciphertext, "public_key": self.public_key}
+
+class QuantumResistantEncoder:
+    def __init__(self):
+        # Kyber vı Dilithium implementasyonu gerekli
+        self.lattice_crypto = LatticeCrypto(dimension=512)
+    
+    def encrypt_semantic_features(self, features):
+        # Semantic özellikleri lattice tabanlı şifrele
+        encrypted = self.lattice_crypto.encrypt(features)
+        return encrypted
+
+class QyptosFileHandler:
+    def __init__(self):
+        self.semantic_header = {
+            'compression_type': 'semantic_hybrid',
+            'security_level': 'quantum_resistant',
+            'semantic_map': 'encrypted_relations'
+        }
+    
+    def save_compressed(self, model_output, file_path):
+        # Semantic sıkıştırılmış veriyi .qyptos formatında kaydet
+        pass
+
+
+class WiFiDependentSecurity:
+    def __init__(self):
+        self.trusted_networks = ["Home_WiFi", "Office_Network"]
+    
+    def verify_wifi_and_decrypt(self, encrypted_data, current_wifi):
+        if current_wifi in self.trusted_networks:
+            return self.decrypt(encrypted_data)
+        else:
+            self.self_destruct()
+            return None
+    
+    def decrypt(self, encrypted_data):  # ✅ BU METODU EKLE
+        # Şifre çözme implementasyonu
+        return encrypted_data.get("data") if encrypted_data.get("simulated") else None
+    
+    def self_destruct(self):  # ✅ BU METODU EKLE
+        print("🚨 GÜVENLİK: WiFi dogrulama basarisiz - self-destruct!")
+
+class SelfDestructProtocol:
+    def __init__(self, max_duration=3600):  # 1 saat
+        self.creation_time = time.time()
+        self.max_duration = max_duration
+    
+    def check_and_destroy(self):
+        if time.time() - self.creation_time > self.max_duration:
+            self.secure_erase()
+    
+    def secure_erase(self):
+        # 10-pass overwrite ile güvenli silme
+        for i in range(10):
+            self.overwrite_with_random()
+
+class AdvancedSecurityModule:
+    def __init__(self):
+        self.quantum_crypto = LatticeCrypto()
+        self.differential_privacy = DifferentialPrivacy()
+        self.self_destruct = SelfDestructProtocol()
+        self.wifi_validator = WiFiDependentSecurity()
+    
+    def secure_processing_pipeline(self, image_data):
+        # 1. Semantic sıkıştırma
+        compressed = self.semantic_compress(image_data)
+        
+        # 2. Quantum şifreleme
+        encrypted = self.quantum_crypto.encrypt(compressed)
+        
+        # 3. .qyptos formatında paketle
+        qyptos_file = self.create_qyptos_file(encrypted)
+        
+        return qyptos_file
+
+class CameraSecurityMonitor:
+    def __init__(self):
+        def detect_lens_obstruction(self):  # ✅ BUNU EKLE
+        # Kamera lens tespit algoritması
+            return False
+
+        self.camera_active = False
+        self.lens_detection = False
+
+    def self_destruct_media(self):  # ✅ BUNU EKLE  
+        print("🚨 GUVENLIK: Medya imha ediliyor...")
+        # Medyayı güvenli şekilde sil
+
+    def monitor_camera_security(self):
+        while self.media_active:
+            if self.detect_lens_obstruction() or not self.camera_active:
+                self.self_destruct_media()
+                break
+
+def calculate_jacobian_based_clip_norm(model: nn.Module, graph_data: Data, quantile=0.9):
+    """
+    Jakobiyen normunu hesaplayarak, DP için adaptif bir kırpma normu (C) belirler.
+    Bu, yerel hassasiyeti yansıtır.
+    
+    Args:
+        model: HybridGNNTransformer modeli.
+        graph_data: Eğitim için kullanılan PyG Data nesnesi (tek bir görüntü/grafik).
+        quantile (float): Kırpma normu için kullanılacak Jakobiyen normlarının yüzdeliği.
+                          (Örn: %90'lık dilimdeki en büyük normu kullanmak.)
+                          
+    Returns:
+        float: Adaptif kırpma normu (C_adaptive).
+    """
+    
+    # 1. Girdi Özellikleri için Gradyanları Etkinleştirme
+    # Bu, PyTorch'un Jakobiyen'i hesaplamak için kullandığı otograd mekanizmasıdır.
+    x_in = graph_data.x.clone().detach().requires_grad_(True)
+    edge_index = graph_data.edge_index
+    edge_attr = graph_data.edge_attr
+    
+    # 2. Modeli Çalıştırma (Sıkıştırma Çıktısını Al)
+    # HybridGNNTransformer'ın sadece sıkıştırılmış özelliği (x_final) döndürdüğünü varsayıyoruz.
+    
+    # Not: Modelin forward metodunu, gradyanları koruyarak çalıştırmamız gerekir.
+    # Bu, 'compress_graph_features' mantığının bir kopyasıdır:
+    x_local = F.relu(model.gcn1(x_in, edge_index, edge_attr))
+    x_local = model.gcn2(x_local, edge_index, edge_attr)
+    x_global = model.transformer(x_local)
+    x_final = x_local + x_global # Sıkıştırılmış anlamsal özellik (num_nodes x feature_dim)
+    
+    # 3. Jakobiyen Normunu Hesaplama (Çıktının Girdiye Göre Hassasiyeti)
+    # Output: x_final (NxF), Input: x_in (NxF)
+    jacobian_norms = []
+    
+    # Her bir düğümün (süperpikselin) çıktısının (x_final[i]) girdisine (x_in) göre Jakobiyenini hesapla.
+    # Jacobian (NxF) -> Her bir satır (düğüm), tüm girdi özelliklerine göre gradyanları içerir.
+    # Bu, tek bir çıkış elemanının tüm girdiye göre gradyanıdır, matrisin tamamı değil.
+    
+    for i in range(x_final.size(0)):
+        # Tek bir çıkış düğümünün tüm girdiye göre gradyanını hesapla
+        # Bu, yerel hassasiyetin en agresif ölçüsüdür.
+        grad_output = torch.zeros_like(x_final)
+        grad_output[i] = 1.0 # Sadece i. düğümün çıktısına göre gradyan
+        
+        # torch.autograd.grad, Jakobiyen'in satırlarını hesaplamak için kullanılır.
+        jacobian_row = torch.autograd.grad(
+            outputs=x_final, 
+            inputs=x_in, 
+            grad_outputs=grad_output,
+            retain_graph=True, # Tüm düğümler için döngüdeyiz, grafiği koru
+            allow_unused=True
+        )[0]
+        
+        # Jakobiyen normu (Frobenius veya 2-normu) hesaplanır (Burada 2-norm, gradyan vektörünün normu)
+        if jacobian_row is not None:
+             # Jakobiyen satırının karesini alıp, toplayıp, karekökünü alıyoruz.
+             jacobian_norms.append(torch.linalg.norm(jacobian_row.flatten()))
+
+    if not jacobian_norms:
+        # Hata durumunda varsayılan sabit değeri döndür
+        return 1.0
+        
+    all_norms = torch.tensor(jacobian_norms)
+    
+    # 4. Adaptif Kırpma Normunu Belirleme
+    # Normların belirli bir yüzdeliğini (kuantilini) C_adaptive olarak al.
+    # Bu, aşırı uç değerleri göz ardı ederek stabil bir C sağlar.
+    C_adaptive = torch.quantile(all_norms, quantile).item()
+    
+    # Minimum 1.0 olsun (güvenlik)
+    return max(1.0, C_adaptive)
+
+
+def train_gcn_with_dp(model, data, optimizer, num_epochs, dp_enabled=False, jacobian_clip_quantile=0.9, epsilon=1.0, delta=1e-5):
+    """
+    Differential Privacy (DP) ile güçlendirilmiş eğitim döngüsü.
+    Şimdi Jakobiyen-Temelli Adaptif Kırpma kullanır.
+    """
+    
+    model.train()
+    for epoch in range(num_epochs):
+        optimizer.zero_grad()
+        # GNN modeliniz tüm veriyi tek bir 'data' nesnesi olarak alıyorsa, tek bir forward/backward işlemi yapılır.
+        out = model(data)
+        loss = F.nll_loss(out, data.y) # Örnek kayıp hesaplaması (NLL)
+        loss.backward(retain_graph=True) # Jakobiyen hesaplaması için grafiği koru
+        
+        # --- DP: Jakobiyen Tabanlı Adaptif Kırpma ve Gürültü Ekleme ---
+        if dp_enabled:
+            
+            # --- DP Adımı 1A: ADAPTİF KIRPMA NORMU HESAPLAMA (YENİ) ---
+            # Modelin girdi-çıktı hassasiyetini ölç ve C_adaptive değerini al.
+            C_adaptive = calculate_jacobian_based_clip_norm(model, data, quantile=jacobian_clip_quantile)
+            
+            # --- DP Adımı 1B: GRADYAN KIRPMA (Clipping) ---
+            # Sabit clip_norm yerine C_adaptive kullanılır.
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=C_adaptive)
+            
+            # --- DP Adımı 2: GÜRÜLTÜ EKLEME ---
+            for param in model.parameters():
+                if param.grad is not None:
+                    # Gürültü eklerken de adaptif C_adaptive değeri kullanılır.
+                    param.grad.data = add_gaussian_noise(
+                        param.grad.data, 
+                        clip_norm=C_adaptive, # Adaptif C kullanılır.
+                        epsilon=epsilon, 
+                        delta=delta
+                    )
+
+        optimizer.step()

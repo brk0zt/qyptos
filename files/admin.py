@@ -1,4 +1,6 @@
-﻿from django.contrib import admin
+﻿# -*- coding: utf-8 -*-
+
+from django.contrib import admin
 from .models import (
     File, CloudGroup, GroupFile, FileComment, 
     GroupInvite, SecureLink, GroupMember, GroupFeed, 

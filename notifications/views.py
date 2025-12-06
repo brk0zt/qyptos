@@ -7,7 +7,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
-
+from rest_framework.permissions import IsAuthenticated
+from .models import Notification
+from rest_framework.views import APIView
 
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
@@ -15,15 +17,22 @@ class NotificationListView(generics.ListAPIView):
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user)
 
-class NotificationMarkAsReadView(generics.UpdateAPIView):
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer
-    
-    def update(self, request, *args, **kwargs):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save()
-        return Response({'status': 'success'})
+    def get(self, request):
+        notifs = Notification.objects.filter(user=request.user).order_by("-created_at")
+        serializer = NotificationSerializer(notifs, many=True)
+        return Response(serializer.data)
+
+class NotificationMarkReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, notification_id):
+        try:
+            notification = Notification.objects.get(id=notification_id, user=request.user)
+            notification.is_read = True
+            notification.save()
+            return Response({"message": "Bildirim okundu olarak isaretlendi"})
+        except Notification.DoesNotExist:
+            return Response({"error": "Bildirim bulunamadi"}, status=404)
 
 def notification_list(request):
     notifications = Notification.objects.filter(user=request.user)

@@ -1,0 +1,16 @@
+# Sanal Ortam (Kesinlikle gitmemeli)
+venv/
+env/
+.env
+
+# Editor dosyalari (Cop)
+.vs/
+.idea/
+__pycache__/
+*.pyc
+
+# Veritabanlari ve Buyuk Medyalar
+*.sqlite3
+*.db
+*.mp4
+*.avi

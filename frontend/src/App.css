@@ -1,0 +1,93 @@
+﻿.App {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.App-header {
+    background-color: #282c34;
+    padding: 1rem;
+    color: white;
+}
+
+.App-content {
+    display: flex;
+    flex: 1;
+}
+
+.sidebar {
+    width: 300px;
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-right: 1px solid #ddd;
+}
+
+.main-content {
+    flex: 1;
+    padding: 1rem;
+}
+
+.create-group-form {
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+    .create-group-form input {
+        flex: 1;
+        padding: 0.5rem;
+    }
+
+.groups-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.group-card {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: white;
+}
+
+.group-actions {
+    margin-top: 1rem;
+}
+
+.btn-join {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-leave {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.file-upload {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.upload-options {
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+    .upload-options label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import { AuthProvider } from './AuthContext';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -10,12 +10,12 @@ if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
         <React.StrictMode>
-            <App />
+            <BrowserRouter>
+                <App />
+            </BrowserRouter>
         </React.StrictMode>
     );
-} 
-else if (!rootElement) {
-    // DOM'da "root" ID'li element yoksa hata mesajý göster
+} else {
     const errorMessage = document.createElement('div');
     errorMessage.style.cssText = `
         padding: 20px;
@@ -33,18 +33,5 @@ else if (!rootElement) {
         <pre>&lt;div id="root"&gt;&lt;/div&gt;</pre>
         <p>Veya mevcut elementin ID'sini kontrol edin.</p>
     `;
-
     document.body.appendChild(errorMessage);
-
-} else {
-    // "root" elementi bulunduysa uygulamayý baþlat
-    const root = ReactDOM.createRoot(rootElement);
-
-    root.render(
-        <React.StrictMode>
-            <AuthProvider>
-                <App />
-            </AuthProvider>
-        </React.StrictMode>
-    );
 }

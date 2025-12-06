@@ -1,0 +1,315 @@
+﻿.memory-stats {
+    background: var(--bg-card);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+    .memory-stats.loading,
+    .memory-stats.error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: var(--text-secondary);
+    }
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+    .stats-header h3 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.2rem;
+    }
+
+.refresh-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+    .refresh-btn:hover {
+        background: var(--bg-secondary);
+        transform: rotate(180deg);
+    }
+
+.storage-visualization {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.storage-pie,
+.brain-memory {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+    .storage-pie h4,
+    .brain-memory h4 {
+        margin: 0 0 15px 0;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+.pie-chart {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    background: conic-gradient( var(--accent-color) 0% var(--percentage), var(--border-color) var(--percentage) 100% );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .pie-chart::before {
+        content: '';
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        background: var(--bg-secondary);
+        border-radius: 50%;
+    }
+
+.percentage {
+    position: relative;
+    z-index: 2;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.brain-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+}
+
+.brain-outline {
+    width: 100%;
+    height: 100%;
+}
+
+.brain-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.storage-info,
+.memory-info {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.info-item {
+    text-align: center;
+}
+
+.info-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 4px;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.memory-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.detail-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+    .detail-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-color);
+    }
+
+.detail-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.detail-content {
+    flex: 1;
+}
+
+.detail-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .storage-visualization {
+        grid-template-columns: 1fr;
+    }
+
+    .memory-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .brain-container {
+        width: 100px;
+        height: 100px;
+    }
+
+    .pie-chart {
+        width: 100px;
+        height: 100px;
+    }
+
+        .pie-chart::before {
+            width: 70px;
+            height: 70px;
+        }
+}
+
+/* Beyin Görseli için Stiller */
+.brain-visual-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+}
+
+.brain-silhouette {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.brain-outline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+}
+
+.brain-lobe {
+    width: 45px;
+    height: 80px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 50% 50% 40% 40%;
+    position: relative;
+}
+
+    .brain-lobe.left {
+        transform: rotate(-5deg);
+    }
+
+    .brain-lobe.right {
+        transform: rotate(5deg);
+    }
+
+.brain-fill {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    background: linear-gradient(to top, #8b5cf6, #7c3aed);
+    border-radius: 40px 40px 20px 20px;
+    transition: height 0.8s ease;
+    z-index: 1;
+}
+
+.brain-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Timeline Actions */
+.timeline-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .timeline-actions .nav-btn {
+        padding: 5px 8px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+
+    .timeline-actions .current-date {
+        font-size: 0.9rem;
+        font-weight: 600;
+        min-width: 60px;
+        text-align: center;
+    }
+
+.retry-btn {
+    padding: 8px 16px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+    .retry-btn:hover {
+        background: var(--accent-secondary);
+    }

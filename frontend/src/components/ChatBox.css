@@ -1,0 +1,411 @@
+﻿/* ChatBox.css - TÜM STİLLER */
+.modern-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #f8fafc;
+    border-radius: 0 0 16px 0;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%), #f8fafc;
+}
+
+.empty-chat-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: #718096;
+    background: white;
+    border-radius: 12px;
+    margin: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 40px;
+}
+
+.empty-chat-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+    color: #667eea;
+}
+
+.empty-chat-state h3 {
+    color: #2d3748;
+    margin-bottom: 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.empty-chat-state p {
+    color: #718096;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+/* Dosya Yükleme Bölümü */
+.file-upload-section {
+    padding: 0 20px;
+    margin-bottom: 12px;
+}
+
+.file-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    cursor: pointer;
+    flex: 1;
+    color: #4a5568;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+    .file-input-label i {
+        color: #667eea;
+        font-size: 16px;
+    }
+
+    .file-input-label:hover {
+        color: #667eea;
+    }
+
+.file-input-hidden {
+    display: none;
+}
+
+.send-file-btn {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+    .send-file-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+    }
+
+/* Mesaj Gönderme Bölümü */
+.message-input-section {
+    padding: 0 20px 20px;
+}
+
+.message-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    background: white;
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-input {
+    flex: 1;
+    border: none;
+    padding: 12px 16px;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    font-size: 14px;
+    outline: none;
+    background: transparent;
+    line-height: 1.4;
+}
+
+    .message-input::placeholder {
+        color: #a0aec0;
+    }
+
+.send-message-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 4px 4px 0;
+}
+
+    .send-message-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .send-message-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+/* Mesaj Balonları */
+.message-bubble {
+    max-width: 70%;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    position: relative;
+    line-height: 1.4;
+}
+
+    .message-bubble.own {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-bubble.other {
+        background: white;
+        color: #2d3748;
+        border: 1px solid #e2e8f0;
+        margin-right: auto;
+        border-bottom-left-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+.message-sender {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.8;
+}
+
+.message-text {
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.message-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.message-bubble:hover .message-actions {
+    opacity: 1;
+}
+
+.message-action-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.2s;
+}
+
+    .message-action-btn.edit-btn {
+        color: #d69e2e;
+    }
+
+    .message-action-btn.delete-btn {
+        color: #e53e3e;
+    }
+
+    .message-action-btn:hover {
+        transform: scale(1.1);
+    }
+
+/* Düzenleme Konteyneri */
+.edit-message-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edit-message-input {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.save-edit-btn {
+    background: #48bb78;
+    color: white;
+}
+
+.cancel-edit-btn {
+    border: 1px solid #e2e8f0;
+}
+
+/* Dosya Mesajları */
+.message-file {
+    margin-top: 8px;
+}
+
+.message-image {
+    max-width: 200px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 12px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+    .file-download-link:hover {
+        background: rgba(102, 126, 234, 0.2);
+        color: #5a67d8;
+    }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .file-input-wrapper {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .send-file-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .message-input-wrapper {
+        margin: 0 10px 20px;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+    }
+
+    .messages-container {
+        padding: 12px;
+    }
+
+    .empty-chat-state {
+        margin: 10px;
+        padding: 20px;
+    }
+}
+/* ChatBox.css - EKLENEN MESAJ DURUMU STİLLERİ */
+
+.message-time {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.message-status {
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+    .message-status.seen {
+        color: #48bb78;
+    }
+
+    .message-status.delivered {
+        color: #a0aec0;
+    }
+
+    .message-status.sent {
+        color: #cbd5e0;
+    }
+
+/* ChatBox.css - EKLENEN STİLLER */
+
+.message-status {
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+    .message-status.seen {
+        color: #48bb78;
+    }
+
+    .message-status.delivered {
+        color: #a0aec0;
+    }
+
+    .message-status.sent {
+        color: #cbd5e0;
+    }
+
+/* Textarea için stiller */
+.message-input {
+    flex: 1;
+    border: none;
+    padding: 12px 16px;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    font-size: 14px;
+    outline: none;
+    background: transparent;
+    line-height: 1.4;
+    font-family: inherit;
+}
+
+    .message-input::placeholder {
+        color: #a0aec0;
+    }

@@ -1,10 +1,12 @@
 {
   "ExpandedNodes": [
     "",
-    "\\frontend",
-    "\\frontend\\public",
-    "\\frontend\\src",
-    "\\frontend\\src\\components"
+    "\\memory",
+    "\\memory\\management",
+    "\\memory\\management\\commands",
+    "\\memory\\services",
+    "\\semantic"
   ],
+  "SelectedNode": "\\memory\\services\\ai_services.py",
   "PreviewInSolutionExplorer": false
 }
