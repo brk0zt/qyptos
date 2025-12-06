@@ -629,6 +629,25 @@ class FileUploadListView(mixins.ListModelMixin, mixins.CreateModelMixin, generic
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        try:
+            print("File upload basliyor...")
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f"File upload error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": f"Dosya yuklenirken hata olustu: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def perform_create(self, serializer):
         try:
             file_obj = self.request.data.get("file")
