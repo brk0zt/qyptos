@@ -147,24 +147,27 @@ const GlobalProtection = () => {
         }, 1000);
 
         // Sekme Değişimi Tespiti
-        const handleVisibilityChange = () => {
+        /* const handleVisibilityChange = () => {
             if (document.hidden) {
                 triggerAggressiveAction("Sekme Odağı/Görünürlük Kaybı");
             }
-        };
+        }; */
 
         document.addEventListener('keydown', handleKeyDown, true);
         document.addEventListener('contextmenu', handleContextMenu, true);
         document.addEventListener('copy', handleCopyCutPaste, true);
         document.addEventListener('cut', handleCopyCutPaste, true);
+
+        /*
         document.addEventListener("visibilitychange", handleVisibilityChange);
+        */
 
         return () => {
             document.removeEventListener('keydown', handleKeyDown, true);
             document.removeEventListener('contextmenu', handleContextMenu, true);
             document.removeEventListener('copy', handleCopyCutPaste, true);
             document.removeEventListener('cut', handleCopyCutPaste, true);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            /* document.removeEventListener("visibilitychange", handleVisibilityChange); */
             clearInterval(checkDevTools);
         };
     }, [location.pathname, triggerAggressiveAction]);

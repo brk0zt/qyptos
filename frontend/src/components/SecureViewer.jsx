@@ -38,6 +38,7 @@ const SecureViewer = ({ file, children, user, isMediaReady = false }) => {
 
         setDebugInfo("✅ Gelişmiş Koruma AKTİF");
 
+        
         const addViolation = (reason) => {
             const now = Date.now();
             const state = violationStateRef.current;
@@ -49,8 +50,10 @@ const SecureViewer = ({ file, children, user, isMediaReady = false }) => {
 
             if (state.count >= MAX_VIOLATIONS) {
                 // kalıcı engelleme
+                /*
                 setSecurityBreach(true);
                 setDebugInfo("🚨 MAKSIMUM IHLAL - Icerik engellendi!");
+                */
             }
         };
 
@@ -68,11 +71,11 @@ const SecureViewer = ({ file, children, user, isMediaReady = false }) => {
                 (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(code));
 
             if (isPrint || isF12 || isDevShortcut) {
-                e.preventDefault();
-                e.stopPropagation();
+               // e.preventDefault();
+                // e.stopPropagation();
                 console.log(`🚨 EKRAN GORUNTUSU DENEMESI: ${key || code}`);
                 // overlay yerine controlled state
-                addViolation(isPrint ? "PrtScn" : isF12 ? "F12" : "DevTools Kısayolu");
+               // addViolation(isPrint ? "PrtScn" : isF12 ? "F12" : "DevTools Kısayolu");
             }
         };
 
@@ -80,11 +83,15 @@ const SecureViewer = ({ file, children, user, isMediaReady = false }) => {
         let blurTimer = null;
         const handleWindowBlur = () => {
             if (!isReady) return;
+            /*
             // kısa odak kayıplarını yoksay (ör: 300ms altındaki)
             if (blurTimer) clearTimeout(blurTimer);
             blurTimer = setTimeout(() => {
-                addViolation("Pencere Odağı Kaybı");
-            }, 400); // 400ms altında geçici odak değişimleri yoksayılıyor
+                /* addViolation("Pencere Odağı Kaybı");
+               
+        }, 400);
+            */
+            console.log("Odak kaybı (Blur) engellendi."); // Sadece log bas
         };
 
         const handleWindowFocus = () => {
@@ -97,7 +104,9 @@ const SecureViewer = ({ file, children, user, isMediaReady = false }) => {
         const handleVisibilityChange = () => {
             if (!isReady) return;
             if (document.hidden) {
-                addViolation("Sayfa Gizlendi/Arka Plana Alındı");
+               /* addViolation("Sayfa Gizlendi/Arka Plana Alındı");
+               */
+                console.log("Sekme değiştirme (Visibility) engellendi."); // Sadece log bas
             }
         };
 

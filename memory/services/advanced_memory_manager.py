@@ -2,107 +2,141 @@
 from django.utils import timezone
 from datetime import timedelta
 import numpy as np
-from .compression_engine import SemanticCompressionEngine
 import logging
-from .ai_services import AIService # Varsayýlan olarak AI Servisini import ediyoruz
 from django.db.models import Q, F
-from ..models import MemoryItem, UserActivity, TimelineEvent, UserMemoryProfile
-
+from django.db import models
+# Modellerini doğru yerden import ettiğine emin ol
+from ..models import MemoryItem, UserActivity, TimelineEvent, UserMemoryProfile, MemoryTier
+from .ai_services import AIService 
+from .compression_engine import SemanticCompressionEngine
+from django.db import models
+from deep_translator import GoogleTranslator
 
 logger = logging.getLogger(__name__)
 
 class AdvancedMemoryManager:
     """
-    Hafıza yönetiminin çekirdeği. Semantik arama, katman geçişleri ve timeline füzyonu
-    gibi karmaşık işlemleri yönetir.
+    Hafıza yönetiminin çekirdeği.
     """
     def __init__(self, user):
         self.user = user
-        self.compression_engine = SemanticCompressionEngine()
         self.ai_service = AIService()
         self.compression_engine = SemanticCompressionEngine()
-        self.user_profile, created = UserMemoryProfile.objects.get_or_create(user=user)
-    
-    def semantic_search(self, query, file_type=None, limit=20)-> list:
-        """
-        Kullanıcının sorgusunu vektöre dönüştürür ve en yakın hafıza öğelerini bulur, 
-        bağlamsal verilerle yeniden puanlar.
-        """
+        # Profil yoksa oluştur
+        self.user_profile, _ = UserMemoryProfile.objects.get_or_create(user=user)
+        self.translator = GoogleTranslator(source='auto', target='en')
+
+    def semantic_search(self, query: str, file_type: str = None, limit: int = 10) -> list:
+        print(f"\n🔎 AKILLI ARAMA BAŞLADI: '{query}' (Kullanıcı ID: {self.user.id})")
+        
         if not query:
             return []
 
-            try:
-            # 1. Sorguyu vektöre dönüştür
-                query_vector = self.ai_service.get_text_embedding(query)
-            
-                if query_vector is None:
-                    logger.warning(f"Kullanıcı {self.user.username} için vektör oluşturulamadı.")
-                    return []
+        results_dict = {}
 
-                recent_items = MemoryItem.objects.filter(
-                user=self.user,
-                expires_at__gte=timezone.now() - timedelta(days=30) # Son 30 gün
-                )
-            
-                results = []
-            
-                for item in recent_items:
-                # Basit bir numpy benzerlik hesaplaması (Sadece simülasyon amaçlı)
-                    item_vector = np.frombuffer(item.vector_embedding) if item.vector_embedding else None
-                    if item_vector is not None:
-                    # Cosine Benzerliği (Varsayım: item_vector ve query_vector aynı boyutta)
-                        similarity = np.dot(item_vector, query_vector) / (np.linalg.norm(item_vector) * np.linalg.norm(query_vector))
-                    
-                    # 3. Yeniden Puanlama (Re-Ranking): Bağlamı dahil et
-                    # Bağlamsal Skor = (Erişim Sayısı Ağırlığı * log(access_count+1)) + (Benzerlik Skoru)
-                        context_score = 0.5 * np.log(item.access_count + 1) + 1.5 * similarity
-                    
-                        results.append({
-                        'item': item,
-                        'similarity_score': float(similarity),
-                        'ranking_score': float(context_score),
-                        })
-
-                # 4. En yüksek puana göre sırala ve limit uygula
-                    final_results = sorted(results, key=lambda x: x['ranking_score'], reverse=True)[:limit]
-            
-                    return [res['item'].to_dict() for res in final_results] # to_dict() metodu models.py'de varsayýlýr
-
-            except Exception as e:
-                logger.error(f"Semantic search hatası: {e}")
-                return []
-
-        from ..models import MemoryItem
-        
         try:
-            memories = MemoryItem.objects.filter(
-                user=self.user,
-                expires_at__gt=timezone.now()
-            )
+
+            try:
+                translated_query = self.translator.translate(query)
+                print(f"   🌍 Dil Algılandı ve Çevrildi: '{query}' -> '{translated_query}'")
+            except Exception as e:
+                print(f"   ⚠️ Çeviri servisi ulaşılamadı, orijinal dil kullanılıyor. Hata: {e}")
+                translated_query = query
+
+            # --- 1. PROMPT ENGINEERING (Sorgu Zenginleştirme) ---
+            # Model "kedi" yerine "A photo of kedi" cümlesini daha iyi anlar.
+            # Bu, vektör skorlarını (cosine similarity) yukarı çeker.
+            clean_query = translated_query.lower()
             
+            if "photo of" in clean_query or "picture of" in clean_query:
+                visual_prompt = translated_query # Kullanıcının yazdığını olduğu gibi kullan
+            else:
+                visual_prompt = f"A photo of {translated_query}" # Biz ekleyelim
+            
+            print(f"   ℹ️  AI Prompt: '{visual_prompt}'")
+
+            # Embeddingleri Hazırla
+            # Metin araması için orijinal sorguyu, görsel araması için prompt'u kullanıyoruz
+            query_vector_text = self.ai_service.get_text_embedding(translated_query) 
+            query_vector_clip = self.ai_service.get_clip_text_embedding(visual_prompt)
+
+            # --- 2. ADAY HAVUZUNU OLUŞTURMA ---
+            # Sadece vektörü olanları al (Vektörsüz dosya "kör" dosyadır)
+            # İsim eşleşmesini burada filtrelemiyoruz, onu puanlarken kullanacağız.
+            filters = Q(user=self.user) & Q(vector_embedding__isnull=False)
             if file_type:
-                memories = memories.filter(file_type=file_type)
+                filters &= Q(file_type=file_type)
+
+            candidates = MemoryItem.objects.filter(filters)
+            print(f"   -> Taranacak aday sayısı: {candidates.count()}")
+
+            # --- 3. PUANLAMA DÖNGÜSÜ ---
+            for item in candidates:
+                item_vector = np.frombuffer(item.vector_embedding, dtype=np.float32)
+                
+                current_query_vector = None
+                if item_vector.shape[0] == 384: current_query_vector = query_vector_text
+                elif item_vector.shape[0] == 512: current_query_vector = query_vector_clip
+                
+                if current_query_vector is None or item_vector.shape != current_query_vector.shape:
+                    continue
+
+                # A. TEMEL SKOR (Cosine Similarity)
+                raw_score = np.dot(item_vector, current_query_vector) / (
+                    np.linalg.norm(item_vector) * np.linalg.norm(current_query_vector)
+                )
+                raw_score = float(raw_score)
+
+                # B. EŞİK KONTROLÜ (Gürültü Filtresi)
+                # 0.21 altı genellikle alakasızdır.
+                if raw_score < 0.21:
+                    continue
+
+                # C. ÜSTEL PUANLAMA (Exponential Scoring)
+                # Makası açmak için 4. kuvvetini alıyoruz.
+                # Örnek: Webcam(0.24)^4 = 0.0033 vs Bebek(0.28)^4 = 0.0061 (2 kat fark!)
+                display_score = pow(raw_score, 4) * 150
+
+                # D. KELİME BONUSU (Sadece %5)
+                # Orijinal Türkçe isimde geçiyorsa küçük bir jest yap.
+                keyword_bonus = 0.0
+                if query.lower() in item.file_name.lower():
+                    keyword_bonus = 0.05
+                    display_score += keyword_bonus
+
+                # Tavan puan %99
+                display_score = min(display_score, 0.99)
+
+                # --- URL DÜZELTME ---
+                if "uploads" not in item.file_name:
+                    safe_url = f"/media/uploads/{item.user.id}/{item.file_name}"
+                else:
+                    safe_url = f"/media/{item.file_name}"
+
+                # Sadece yüksek skorlu adayları loga bas (Kirlilik olmasın)
+                if display_score > 0.50:
+                    print(f"      + Güçlü Aday: {item.file_name[:20]}... | Ham: {raw_score:.3f} | Sonuç: %{display_score*100:.1f}")
+
+                results_dict[item.id] = {
+                    'id': item.id,
+                    'file_name': item.file_name,
+                    'file_type': item.file_type,
+                    'file_path': item.file_path,
+                    'similarity_score': display_score,
+                    'ranking_score': display_score,
+                    'summary': item.content_summary,
+                    'thumbnail': safe_url
+                }
+
+            final_results = list(results_dict.values())
+            final_results.sort(key=lambda x: x['ranking_score'], reverse=True)
             
-            # Basit benzerlik hesaplama
-            results = []
-            for memory in memories:
-                score = self.calculate_similarity(query, memory)
-                if score > 0.1:
-                    results.append({
-                        'memory_item': memory,
-                        'file_path': memory.file_path,
-                        'file_type': memory.file_type,
-                        'similarity_score': score,
-                        'last_accessed': memory.last_accessed,
-                        'access_count': memory.access_count,
-                        'content_summary': memory.content_summary
-                    })
-            
-            results.sort(key=lambda x: x['similarity_score'], reverse=True)
-            return results[:limit]
-            
+            print(f"✅ TOPLAM SONUÇ: {len(final_results)} dosya bulundu.\n")
+            return final_results[:limit]
+
         except Exception as e:
-            logger.error(f"Semantic search hatasi: {e}")
+            logger.error(f"Semantic search hatası: {e}")
+            print(f"❌ ARAMA HATASI: {e}")
             return []
     
     def get_fused_timeline(self, days: int = 7, limit: int = 100) -> list:

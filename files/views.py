@@ -47,7 +47,7 @@ from .models import FileShare
 from django.db.models import Count, Q, F, ExpressionWrapper, FloatField
 from django.db.models.functions import Coalesce
 from memory.services.advanced_memory_manager import AdvancedMemoryManager
-from memory.models import MemoryItem
+from memory.models import MemoryItem, MemoryTier
 from rest_framework import generics, mixins
 import base64
 import numpy as np
@@ -57,7 +57,8 @@ import mimetypes
 from django.core.cache import cache
 import time
 from PIL import Image
-from users.security.camera_detector import security_detector 
+from users.security.camera_detector import security_detector
+from memory.services.ai_services import AIService
 
 logger = logging.getLogger(__name__)
 
@@ -367,29 +368,39 @@ def kayit_api(request):
             })
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny]) # Herkes analiz gönderebilir (Token kontrolü eklenebilir)
 def analyze_camera_frame(request):
-    """Frontend'den gelen frame'i analiz et"""
+    """
+    Frontend'den gelen frame'i analiz eder.
+    Global değişken yerine SESSION tabanlı engelleme kullanır.
+    """
     try:
         frame_file = request.FILES.get('frame')
         if not frame_file:
             return Response({'error': 'Frame bulunamadı'}, status=400)
         
-        # Frame'i OpenCV formatına çevir
+        # Frame'i işle
         file_bytes = np.frombuffer(frame_file.read(), np.uint8)
         frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         if frame is None:
             return Response({'error': 'Frame decode edilemedi'}, status=400)
         
-        # Güvenlik analizi yap
-        from users.security.camera_detector import security_detector
-        
+        # Analiz yap
         security_status = security_detector.monitor_security(frame)
         
+        # --- KRİTİK DÜZELTME: Session'a yaz ---
+        if security_status == "BLOCK_SCREEN":
+            request.session['security_breach'] = True
+            request.session.modified = True
+            print(f"🚨 Session {request.session.session_key} için ihlal işaretlendi.")
+        
+        # Eğer session'da daha önceden ihlal varsa, status'u güncelle
+        is_breached = request.session.get('security_breach', False)
+        
         return Response({
-            'security_breach': security_status == "BLOCK_SCREEN",
-            'reason': 'CAMERA_DETECTED' if security_status == "BLOCK_SCREEN" else 'CLEAR',
+            'security_breach': is_breached, # Session durumunu döndür
+            'reason': 'CAMERA_DETECTED' if is_breached else 'CLEAR',
             'face_detected': security_detector.detect_faces(frame),
             'lens_detected': security_detector.multi_method_lens_detection(frame)
         })
@@ -399,97 +410,90 @@ def analyze_camera_frame(request):
         return Response({'error': str(e)}, status=500)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def report_security_breach(request):
-    """Frontend'den gelen güvenlik ihlalini kaydet"""
+    """
+    Frontend'den gelen manuel ihlal bildirimi (örn: PrintScreen tuşu).
+    """
     try:
         data = request.data
-        user = request.user
+        reason = data.get('reason', 'UNKNOWN')
         
-        # Güvenlik ihlalini logla
-        print(f"GÜVENLİK İHLALİ - Kullanıcı: {user.username}, Sebep: {data.get('reason')}")
+        # Session'a ihlali kaydet
+        request.session['security_breach'] = True
+        request.session.modified = True
         
-        #SecurityBreach.objects.create(user=user, reason=data.get('reason'))
+        print(f"🚨 GÜVENLİK İHLALİ RAPORLANDI (Session): {reason}")
         
-        return Response({'status': 'reported'})
+        return Response({'status': 'reported', 'action': 'BLOCK_SESSION'})
         
     except Exception as e:
-        print(f"Güvenlik ihlali raporlama hatası: {str(e)}")
         return Response({'error': str(e)}, status=500)
 
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def clear_security_breach(request):
+    """
+    DEBUG: Güvenlik ihlalini temizlemek için endpoint (Geliştirme aşaması için)
+    """
+    request.session['security_breach'] = False
+    return Response({'status': 'cleared'})
+
+
 class SecureMediaView(APIView):
-    """Güvenli medya görüntüleme view'ı"""
+    """
+    Güvenli medya görüntüleme - Session tabanlı kontrol.
+    """
     permission_classes = [AllowAny]
     
     def get(self, request, token):
         try:
-            # Önce güvenlik kontrolü yap
+            # 1. Güvenlik Kontrolü (Session'dan)
             security_check = self.check_security(request)
             if not security_check['allowed']:
                 return self.render_security_block(security_check['reason'])
             
-            # Normal medya görüntüleme işlemi
-            return self.render_media(token)
+            # 2. Token Doğrulama ve Dosya Bulma
+            share = get_object_or_404(FileShare, token=token, is_revoked=False)
+            
+            if share.is_expired() or share.view_count >= share.max_views:
+                 return self.render_security_block("Link süresi doldu veya limit aşıldı.")
+
+            # 3. Görüntüleme Sayacını Artır
+            share.view_count += 1
+            share.save()
+            
+            # 4. Dosyayı Sun
+            return FileResponse(share.file.file.open('rb'))
             
         except Exception as e:
             return Response({'error': str(e)}, status=500)
-
-    def render_media(self, token):
-        """Medya dosyasını token ile döndürme mantığı burada olmalı"""
-        
-        # Örnek bir placeholder veya gerçek dosya döndürme mantığı
-        file_share = get_object_or_404(FileShare, token=token)
-        return FileResponse(file_share.file.file.path)
-        
-        return HttpResponse("Render media metodu henüz uygulanmadı.", status=200)
     
     def check_security(self, request):
-        """Güvenlik kontrollerini yap"""
-        from users.security.camera_detector import security_detector
-        
-        # Backend kamera kontrolü (opsiyonel)
-        backend_breach = security_detector.security_breach
+        """
+        Global singleton yerine request.session kontrolü yapar.
+        """
+        # Session'daki 'security_breach' anahtarına bak
+        backend_breach = request.session.get('security_breach', False)
         
         return {
             'allowed': not backend_breach,
-            'reason': 'BACKEND_CAMERA_DETECTED' if backend_breach else 'CLEAR'
+            'reason': 'CAMERA_DETECTED_SESSION' if backend_breach else 'CLEAR'
         }
     
     def render_security_block(self, reason):
-        """Güvenlik engeli sayfası render et"""
         html_content = f"""
-        <!DOCTYPE html>
         <html>
-        <head>
-            <title>Güvenlik Uyarısı</title>
-            <style>
-                body {{ 
-                    background: black; 
-                    color: white; 
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                    padding: 50px;
-                }}
-                .warning {{
-                    background: #ff4444;
-                    padding: 30px;
-                    border-radius: 10px;
-                    margin: 20px auto;
-                    max-width: 500px;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="warning">
-                <h1>🚨 GÜVENLİK İHLALİ TESPİT EDİLDİ</h1>
-                <p>Bu içerik güvenlik nedeniyle engellendi.</p>
-                <p><strong>Sebep:</strong> {reason}</p>
-                <p>Lütfen kayıt cihazlarını kapatıp sayfayı yenileyin.</p>
-            </div>
+        <body style="background:black; color:red; text-align:center; padding:50px; font-family:sans-serif;">
+            <div style="font-size:50px;">🚫</div>
+            <h1>Erişim Engellendi</h1>
+            <p>Güvenlik sistemi bir ihlal tespit etti.</p>
+            <p>Kod: {reason}</p>
         </body>
         </html>
         """
-        return HttpResponse(html_content)
+        return HttpResponse(html_content, status=403)
 
 
 # files/views.py
@@ -629,42 +633,18 @@ class FileUploadListView(mixins.ListModelMixin, mixins.CreateModelMixin, generic
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
-    def create(self, request, *args, **kwargs):
-        try:
-            print("File upload basliyor...")
-            return super().create(request, *args, **kwargs)
-        except Exception as e:
-            print(f"File upload error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return Response(
-                {"error": f"Dosya yuklenirken hata olustu: {str(e)}"}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
     def perform_create(self, serializer):
         try:
             file_obj = self.request.data.get("file")
             if not file_obj:
                 raise serializers.ValidationError("Dosya secilmedi")
             
-            print(f"Dosya adi: {file_obj.name}, Boyut: {file_obj.size}")
-            
+            # Form verilerini al
             view_duration = self.request.data.get("view_duration", "unlimited")
-
-            # Hata Düzeltme: String olarak gelen 'false' veya 'true' değerlerini Python boolean'ına çevirme
-            # is_public ve one_time_view, form verisi olarak string geldiyse dönüştürülmelidir.
-
-            # 'true', 't', '1', 'on' gibi değerler True kabul edilir, diğerleri (varsayılan değer dahil) False kabul edilir.
             one_time_view = str(self.request.data.get("one_time_view", "False")).lower() in ('true', 't', '1', 'on')
             is_public = str(self.request.data.get("is_public", "False")).lower() in ('true', 't', '1', 'on')
             
+            # 1. DOSYAYI KAYDET
             instance = serializer.save(
                 owner=self.request.user, 
                 file_size=file_obj.size,
@@ -673,21 +653,16 @@ class FileUploadListView(mixins.ListModelMixin, mixins.CreateModelMixin, generic
                 is_public=is_public
             )
 
+            # 2. WATERMARK İŞLEMİ (Görselse)
             mime_type, _ = mimetypes.guess_type(file_obj.name)
-            print(f"File MIME type: {mime_type}")
             
             if mime_type and mime_type.startswith("image"):
                 try:
-                    # Save first to get the file path
-                    instance.save()
                     original_path = instance.file.path
-                    print(f"Original path: {original_path}")
-                    
                     if os.path.exists(original_path):
                         base_path = os.path.splitext(original_path)[0]
                         watermarked_path = base_path + "_wm.jpg"
-                        print(f"Watermarked path: {watermarked_path}")
-
+                        
                         add_watermark(original_path, watermarked_path, username=self.request.user.username)
 
                         with open(watermarked_path, "rb") as f:
@@ -696,30 +671,63 @@ class FileUploadListView(mixins.ListModelMixin, mixins.CreateModelMixin, generic
                                 ContentFile(f.read()), 
                                 save=True
                             )
-
-                        # Clean up temporary files
-                        if os.path.exists(original_path):
-                            os.remove(original_path)
-                        if os.path.exists(watermarked_path):
-                            os.remove(watermarked_path)
-                    else:
-                        print("Original dosya path'i bulunamadi")
                         
+                        # Geçici dosyaları temizle
+                        if os.path.exists(original_path): os.remove(original_path)
+                        if os.path.exists(watermarked_path): os.remove(watermarked_path)
                 except Exception as e:
-                    print(f"Watermark error: {str(e)}")
-                    # Don't delete the instance if watermark fails, just continue without watermark
-            
+                    print(f"Watermark hatası: {e}")
+
             if instance.one_time_view:
                 instance.view_token = str(uuid.uuid4())
                 instance.has_been_viewed = False
                 instance.save()
 
-            print(f"File uploaded successfully: {instance.file.name}")
-            
+            print(f"✅ Dosya yüklendi: {instance.file.name}")
+
+            # 3. OTOMATİK HAFIZA (Embedding) OLUŞTURMA
+            # Burası dosya yüklendiği anda AI'ın onu tanımasını sağlar.
+            try:
+                print("🧠 Yapay Hafıza işleniyor...")
+                ai_service = AIService()
+                
+                # Bellek katmanı
+                default_tier, _ = MemoryTier.objects.get_or_create(name="short_term")
+                
+                # Dosya türünü belirle
+                ftype = 'unknown'
+                if mime_type:
+                    if mime_type.startswith('image'): ftype = 'image'
+                    elif mime_type.startswith('text'): ftype = 'text'
+                    elif mime_type.startswith('video'): ftype = 'video'
+
+                # Embedding Oluştur
+                embedding = None
+                if ftype == 'image':
+                    embedding = ai_service.get_image_embedding(instance.file.path)
+                elif ftype in ['text', 'pdf', 'code']:
+                    embedding = ai_service.get_text_embedding(instance.file.name) # Şimdilik isimden
+
+                # MemoryItem Kaydet
+                if embedding is not None:
+                    MemoryItem.objects.create(
+                        user=self.request.user,
+                        file_name=os.path.basename(instance.file.name),
+                        file_path=instance.file.path,
+                        file_type=ftype,
+                        original_size=instance.file_size,
+                        vector_embedding=embedding.tobytes(),
+                        memory_tier=default_tier
+                    )
+                    print(f"🧠 Hafızaya eklendi: {instance.file.name} (Vektör: {embedding.shape[0]})")
+                else:
+                    print("⚠️ Vektör oluşturulamadı (AI Service None döndü).")
+
+            except Exception as e:
+                print(f"❌ Hafıza oluşturma hatası: {e}")
+
         except Exception as e:
-            print(f"Perform create error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            print(f"Dosya yükleme hatası: {e}")
             raise
 
 class SecurityMiddleware:

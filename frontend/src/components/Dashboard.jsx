@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+﻿// Dashboard.jsx (Düzeltilmiş Versiyon)
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../AuthContext";
 import { useMemory } from "./MemoryContext";
 import ChunkDownloader from "./ChunkDownloader";
@@ -9,6 +10,8 @@ import UserList from "./UserList";
 import TrendingView from './TrendingView';
 import "./styles/Dashboard.css";
 import SearchEngine from './SearchEngine';
+
+const API_BASE = "http://localhost:8001"; // Resimler için Backend adresi
 
 const MemoryStatsView = ({ stats }) => {
     if (!stats) return <div className="loading-state">Hafıza İstatistikleri yükleniyor...</div>;
@@ -21,8 +24,10 @@ const MemoryStatsView = ({ stats }) => {
         tier_distribution
     } = stats;
 
-    // Yüzde hesapla
-    const usedPercentage = ((memory_used_mb / memory_quota_mb) * 100).toFixed(1);
+    // Yüzde hesapla (Sıfıra bölünme hatasını engelle)
+    const usedPercentage = memory_quota_mb > 0
+        ? ((memory_used_mb / memory_quota_mb) * 100).toFixed(1)
+        : "0.0";
 
     return (
         <div className="memory-stats-view">
@@ -56,163 +61,424 @@ const MemoryStatsView = ({ stats }) => {
                     ))}
                 </ul>
             </div>
+        </div>
+    );
+};
 
-            {/* ... Diğer detaylar eklenebilir (Örn: En çok erişilen öğeler, öğrenme hızı) ... */}
+const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
+    const [inputText, setInputText] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [aiResponse, setAiResponse] = useState(null);
+    const [foundMemories, setFoundMemories] = useState([]);
+
+    const handleSendMessage = async () => {
+        if (!inputText.trim() || isProcessing) return;
+
+        setIsProcessing(true);
+        setAiResponse(null);
+        setFoundMemories([]);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        try {
+            const token = localStorage.getItem('token');
+            console.log("Sorgu:", inputText);
+
+            const response = await fetch(`${API_BASE}/api/chat/ask/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message: inputText }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            const jsonResponse = await response.json();
+
+            // --- DÜZELTME BURADA ---
+            // Gelen veri { data: {...}, success: true } formatında olabilir.
+            // Eğer jsonResponse.data varsa onu kullan, yoksa direkt kendisini kullan.
+            const actualData = jsonResponse.data || jsonResponse;
+
+            console.log("📦 İşlenen Veri:", actualData);
+
+            if (response.ok) {
+                // 1. Cevap Metni
+                setAiResponse(actualData.reply || "Sonuç bulundu.");
+
+                // 2. Görseller
+                const memories = actualData.relevant_memories || [];
+
+                if (memories.length > 0) {
+                    console.log(`📸 ${memories.length} görsel bulundu, ekrana basılıyor...`);
+                    setFoundMemories(memories);
+                } else {
+                    console.warn("⚠️ Görsel listesi boş.");
+                }
+
+                if (onRefreshTimeline) onRefreshTimeline();
+            } else {
+                setAiResponse("Hata: " + (actualData.detail || "İşlem başarısız."));
+            }
+
+        } catch (error) {
+            console.error("Frontend Hatası:", error);
+            setAiResponse(error.name === 'AbortError' ? "Zaman aşımı." : "Bağlantı hatası.");
+        } finally {
+            setIsProcessing(false);
+            setInputText("");
+            clearTimeout(timeoutId);
+        }
+    };
+    return (
+        <div className="welcome-chat-wrapper">
+            <div className="welcome-header">
+                <img src="/logo-tri.png" alt="Qyptos AI" className="welcome-logo-img" />
+                <h1>Merhaba {username || 'Kullanıcı'}</h1>
+            </div>
+
+            <div className="gemini-input-container">
+                <input
+                    type="text"
+                    placeholder="Qyptos AI'a sorun (Örn: 'Elma')"
+                    className="gemini-text-input"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    disabled={isProcessing}
+                />
+                <button className="gemini-icon-btn mic-btn" onClick={handleSendMessage}>
+                    <i className={`fas ${isProcessing ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+                </button>
+            </div>
+
+            {/* SONUÇ ALANI - Her zaman render edilsin (Görünürlük testi için) */}
+            <div className="ai-result-area" style={{ marginTop: '20px', padding: '10px' }}>
+
+                {/* Metin Cevabı */}
+                {aiResponse && (
+                    <div className="ai-text-bubble" style={{ color: 'white', marginBottom: '15px' }}>
+                        <i className="fas fa-robot"></i> {aiResponse}
+                    </div>
+                )}
+
+                {/* Kartlar - Doğrudan map ediyoruz */}
+                {foundMemories.length > 0 && (
+                    <div style={{ borderTop: '1px solid #333', paddingTop: '10px' }}>
+                        <small style={{ color: '#666' }}>Bulunan Dosyalar ({foundMemories.length}):</small>
+                        {foundMemories.map((mem, index) => (
+                            <MemoryResultCard key={index} memory={mem} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Dashboard.jsx içine (Eski MemoryResultCard yerine)
+const MemoryResultCard = ({ memory }) => {
+    // URL Kontrolü (Garanti Yöntem)
+    let imageUrl = memory.thumbnail || '';
+    if (imageUrl && !imageUrl.startsWith('http')) {
+        // Backend adresi ile birleştir
+        imageUrl = `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+
+    console.log("RENDER CARD:", memory.file_name, imageUrl);
+
+    return (
+        <div className="memory-result-card"
+            onClick={() => window.open(imageUrl, '_blank')}
+            style={{
+                background: '#1a1a1a', // Koyu gri (görünür olması için)
+                border: '1px solid #3B82F6',
+                borderRadius: '12px',
+                padding: '15px',
+                marginTop: '15px',
+                display: 'flex',
+                gap: '15px',
+                cursor: 'pointer',
+                minHeight: '80px',
+                color: 'white' // Yazı rengi beyaz
+            }}
+        >
+            {/* Küçük Resim Alanı */}
+            <div style={{
+                width: '80px', height: '80px',
+                borderRadius: '8px', overflow: 'hidden',
+                background: '#000', flexShrink: 0
+            }}>
+                <img
+                    src={imageUrl}
+                    alt="thumbnail"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.style.display = 'none'; }} // Resim yoksa gizle ama kutuyu bozma
+                />
+            </div>
+
+            {/* Bilgi Alanı */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <h4 style={{ margin: '0 0 5px 0', color: '#3B82F6', fontSize: '1rem' }}>
+                    {memory.file_name}
+                </h4>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                    Skor: %{(memory.similarity_score * 100).toFixed(0)}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '5px' }}>
+                    {imageUrl}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ChronologyBar = ({ refreshTrigger }) => {
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchTimeline = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/api/timeline/?days=7&limit=10`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (data.timeline_events) {
+                setEvents(data.timeline_events);
+            }
+        } catch (error) {
+            console.error("Timeline hatası:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTimeline();
+    }, [refreshTrigger]);
+
+    if (loading) return <div className="chronology-wrapper" style={{ padding: '20px', textAlign: 'center' }}>Yükleniyor...</div>;
+
+    return (
+        <div className="chronology-wrapper">
+            <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '15px' }}>Son Aktiviteler</h3>
+            <div className="chronology-track" style={{ overflowX: 'auto', paddingBottom: '10px', display: 'flex', gap: '20px' }}>
+                {events.length === 0 ? (
+                    <div style={{ color: 'var(--text-muted)' }}>Henüz bir aktivite yok.</div>
+                ) : (
+                    events.map((event, index) => (
+                        <div key={index} className="chrono-item" title={event.description} style={{ minWidth: '100px', textAlign: 'center' }}>
+                            <div className={`chrono-dot ${index === 0 ? 'active' : ''}`} style={{ margin: '0 auto 10px auto' }}></div>
+                            <span style={{ fontSize: '0.8rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
+                                {/* Uzun başlıkları kısalt */}
+                                {event.title.length > 15 ? event.title.substring(0, 12) + '..' : event.title}
+                            </span>
+                            <small style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </small>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };
 
 export default function Dashboard({ notifications = [] }) {
     const { user, logout } = useAuth();
-    const { fetchMemoryStats: fetchMemoryStatsFromContext } = useMemory(); // MemoryContext'ten fonksiyonu al
+    const { fetchMemoryStats: fetchMemoryStatsFromContext } = useMemory();
     const [memoryStats, setMemoryStats] = useState(null);
+    const [storageStats, setStorageStats] = useState({ used: 0, total: 50 });
+    const [timelineRefresh, setTimelineRefresh] = useState(0);
     const [activeTab, setActiveTab] = useState("downloader");
     const [notificationCount] = useState(notifications.length || 3);
     const [selectedThread, setSelectedThread] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [theme, setTheme] = useState('dark');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    const [isThemeAnimating, setIsThemeAnimating] = useState(false);
 
-    // fetchMemoryStats fonksiyonunu tanımla
+    const handleTimelineRefresh = () => {
+        setTimelineRefresh(prev => prev + 1);
+    };
+
+    const fetchStorageData = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${API_BASE}/api/files/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const files = await response.json();
+                let totalBytes = 0;
+                files.forEach(file => {
+                    if (file.file_size) totalBytes += file.file_size;
+                    else totalBytes += 1024 * 1024;
+                });
+                const usedGB = totalBytes / (1024 * 1024 * 1024);
+                setStorageStats({ used: usedGB, total: 50 });
+            }
+        } catch (error) {
+            console.error("Depolama verisi çekilemedi:", error);
+        }
+    };
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef]);
+
     const fetchMemoryStats = useCallback(async () => {
         try {
-            console.log('📊 Memory istatistikleri çekiliyor...');
             if (fetchMemoryStatsFromContext) {
                 const stats = await fetchMemoryStatsFromContext();
                 setMemoryStats(stats);
-                return stats;
             } else {
-                // Fallback: Direk API çağrısı
-                const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:8001/api/memory/stats/', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    }
+                setMemoryStats({
+                    memory_used_mb: 2.5,
+                    memory_quota_mb: 100,
+                    total_items: 42
                 });
-
-                if (response.ok) {
-                    const stats = await response.json();
-                    setMemoryStats(stats);
-                    return stats;
-                } else {
-                    console.error('Memory stats alınamadı');
-                    // Fallback stats
-                    const fallbackStats = {
-                        used_memory: 2.5,
-                        total_memory: 10,
-                        total_items: 25,
-                        total_activities: 150,
-                        file_type_count: 8
-                    };
-                    setMemoryStats(fallbackStats);
-                    return fallbackStats;
-                }
             }
         } catch (error) {
-            console.error('❌ Memory istatistikleri yüklenirken hata:', error);
-            // Fallback stats
-            const fallbackStats = {
-                used_memory: 2.5,
-                total_memory: 10,
-                total_items: 25,
-                total_activities: 150,
-                file_type_count: 8
-            };
-            setMemoryStats(fallbackStats);
-            return fallbackStats;
+            console.error('Hata:', error);
+            setMemoryStats({ memory_used_mb: 0, memory_quota_mb: 100 });
         }
     }, [fetchMemoryStatsFromContext]);
 
-    const handleLogout = () => {
-        console.log('🚪 Dashboard logout butonuna tıklandı');
-        logout();
-    };
+    useEffect(() => {
+        fetchMemoryStats();
+        fetchStorageData();
+        const interval = setInterval(() => {
+            fetchStorageData();
+            fetchMemoryStats();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchMemoryStats]);
+
+    const handleLogout = () => { logout(); };
 
     const toggleTheme = () => {
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-        document.documentElement.setAttribute('data-theme', newTheme);
+        setIsThemeAnimating(true);
+        setTimeout(() => {
+            const newTheme = theme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            document.documentElement.setAttribute('data-theme', newTheme);
+        }, 200);
+        setTimeout(() => { setIsThemeAnimating(false); }, 500);
+    };
+
+    const toggleDropdown = () => { setIsDropdownOpen(!isDropdownOpen); };
+
+    const onChatFileSelect = (file) => {
+        alert(`"${file.name}" seçildi.`);
+        setActiveTab("downloader");
     };
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
-
-        // Memory istatistiklerini yükle
         fetchMemoryStats();
 
         const fetchOnlineUsers = async () => {
             try {
                 const token = localStorage.getItem('token');
-                console.log('🔑 Dashboard - Token kontrolü:', token ? '✅ VAR' : '❌ YOK');
-
-                if (!token) {
-                    console.error('❌ Token bulunamadı! Login sayfasına yönlendiriliyor...');
-                    logout();
-                    return;
-                }
-
-                console.log('🔄 Kullanıcı listesi çekiliyor...');
-                const response = await fetch('http://localhost:8001/chat/users/', {
+                if (!token) return;
+                const response = await fetch(`${API_BASE}/chat/users/`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                 });
-
-                console.log('📡 Kullanıcı listesi response status:', response.status);
-
-                if (response.status === 401) {
-                    console.error('❌ Token geçersiz veya süresi dolmuş');
-                    logout();
-                    return;
+                if (response.ok) {
+                    const users = await response.json();
+                    setOnlineUsers(users);
                 }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const users = await response.json();
-                console.log(`✅ ${users.length} kullanıcı yüklendi`);
-                setOnlineUsers(users);
-
             } catch (error) {
-                console.error('❌ Kullanıcı listesi yüklenirken hata:', error);
-                setOnlineUsers([]);
+                console.error('Kullanıcı listesi hatası:', error);
             }
         };
-
         fetchOnlineUsers();
-    }, [logout, theme, fetchMemoryStats]); // fetchMemoryStats'ı dependency array'e ekle
+    }, [logout, theme, fetchMemoryStats]);
 
     const renderContent = () => {
         switch (activeTab) {
             case "downloader":
+                const storagePercent = Math.min((storageStats.used / storageStats.total) * 100, 100).toFixed(1);
+
+                // NaN hatası düzeltmesi
+                const memoryPercent = (memoryStats && memoryStats.memory_quota_mb > 0)
+                    ? ((memoryStats.memory_used_mb / memoryStats.memory_quota_mb) * 100).toFixed(1)
+                    : "0.0";
+
                 return (
-                    <div className="storage-memory-container">
-                        <ChunkDownloader
-                            apiBase="http://localhost:8001/api"
-                            userEmail={user?.email}
-                            theme={theme}
-                            memoryStats={memoryStats}
+                    <div className="dashboard-home-layout">
+                        <WelcomeChatSection
+                            username={user?.username}
+                            onFileSelect={onChatFileSelect}
+                            onRefreshTimeline={handleTimelineRefresh}
                         />
-                        <div className="memory-stats-placeholder" style={{
-                            padding: '20px',
-                            background: '#f5f5f5',
-                            borderRadius: '8px',
-                            textAlign: 'center',
-                            color: '#666'
-                        }}>
-                            <h3>🧠 Hafıza İstatistikleri</h3>
-                            <p>Hafıza modülü şu anda güncelleniyor...</p>
+
+                        <ChronologyBar refreshTrigger={timelineRefresh} />
+
+                        <div className="stats-grid-visual">
+                            <div className="qyptos-card storage-card">
+                                <div className="card-header">
+                                    <i className="fas fa-archive"></i>
+                                    <h3>Depolama Alanı</h3>
+                                </div>
+                                <div className="circle-chart-wrapper">
+                                    <svg viewBox="0 0 36 36" className="circular-chart blue">
+                                        <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path className="circle" strokeDasharray={`${storagePercent}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <text x="18" y="20.35" className="percentage">{storagePercent}%</text>
+                                    </svg>
+                                </div>
+                                <div className="card-footer">
+                                    <span>Kullanılan: {storageStats.used.toFixed(2)} GB</span>
+                                    <span>Toplam: {storageStats.total} GB</span>
+                                </div>
+                            </div>
+
+                            <div className="qyptos-card memory-card">
+                                <div className="card-header">
+                                    <i className="fas fa-brain"></i>
+                                    <h3>Yapay Hafıza</h3>
+                                </div>
+                                <div className="circle-chart-wrapper">
+                                    <svg viewBox="0 0 36 36" className="circular-chart purple">
+                                        <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path className="circle" strokeDasharray={`${memoryPercent}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <text x="18" y="20.35" className="percentage">{memoryPercent}%</text>
+                                    </svg>
+                                </div>
+                                <div className="card-footer">
+                                    <span>{memoryStats?.total_items || 0} Öğrenilen Bilgi</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="downloader-container-wrapper">
+                            <ChunkDownloader apiBase={`${API_BASE}/api`} />
                         </div>
                     </div>
                 );
-            case "groups":
-                return <GroupManager />;
-
-            case "memory": 
-                return <MemoryStatsView stats={memoryStats} />;
-
+            case "groups": return <GroupManager />;
+            case "memory": return <MemoryStatsView stats={memoryStats} />;
             case "chat":
                 return (
                     <div className="chat-container">
@@ -233,168 +499,68 @@ export default function Dashboard({ notifications = [] }) {
                         <div className="chat-main">
                             {selectedThread ? (
                                 <>
-                                    <ChatHeader
-                                        username={selectedThread.username}
-                                        isOnline={selectedThread.isOnline}
-                                    />
-                                    <ChatBox
-                                        threadId={selectedThread.id}
-                                        currentUser={user?.username}
-                                    />
+                                    <ChatHeader username={selectedThread.username} isOnline={selectedThread.isOnline} />
+                                    <ChatBox threadId={selectedThread.id} currentUser={user?.username} />
                                 </>
                             ) : (
                                 <div className="no-chat-selected">
                                     <div className="no-chat-icon">💬</div>
                                     <h3>Bir sohbet başlatın</h3>
-                                    <p>Sohbet etmek için soldaki listeden bir kullanıcı seçin</p>
                                 </div>
                             )}
                         </div>
                     </div>
                 );
-            case "ads":
-                return <TrendingView />;
-
-            case "media":
-                return <SearchEngine />;
-
+            case "ads": return <TrendingView />;
+            case "media": return <SearchEngine />;
             case "profile":
                 return (
                     <div className="content-placeholder">
-                        <h2>Profil Ayarları</h2>
+                        <h2>Profil</h2>
                         <p>Kullanıcı: {user?.username}</p>
-                        <p>Email: {user?.email}</p>
                     </div>
                 );
-            default:
-                return <div className="content-placeholder">Bir içerik seçin</div>;
+            default: return <div>Seçim yapın</div>;
         }
     };
 
     return (
         <div className="dashboard-horizontal">
-
-            <nav className="sidebar-nav">
-                <div className="nav-logo">
-                    <i className="fas fa-brain"></i>
-                    <span>Recall AI</span>
-                </div>
-
-                <div className="nav-links">
-                    {/* YENİ Navigasyon Butonu */}
-                    <div
-                        className={`nav-link ${activeTab === 'memory' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('memory')}
-                    >
-                        <i className="fas fa-chart-bar"></i>
-                        <span>Yapay Hafıza</span>
-                    </div>
-
-                    <div
-                        className={`nav-link ${activeTab === 'timeline' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('timeline')}
-                    >
-                        <i className="fas fa-history"></i>
-                        <span>Timeline (Recall)</span>
-                    </div>
-                    {/* ... Diğer nav-link'ler ... */}
-                </div>
-            </nav>
-
-            {/* Üst Navigasyon Bar */}
             <nav className="top-nav">
                 <div className="nav-left">
                     <div className="logo">
-                        <img
-                            src="/qyptos-logo.png"
-                            alt="qyptos-logo"
-                            className="qyptos-logo-img"
-                        />
+                        <img src="/qyptos-logo.png" alt="qyptos-logo" className="qyptos-logo-img" />
                     </div>
-
                     <div className="nav-menu">
-                        <div
-                            className={`nav-item ${activeTab === "downloader" ? "active" : ""}`}
-                            onClick={() => setActiveTab("downloader")}
-                        >
-                            <i className="fas fa-cloud"></i>
-                            <span>Bulutum</span>
-                        </div>
-
-                        <div
-                            className={`nav-item ${activeTab === "ads" ? "active" : ""}`}
-                            onClick={() => setActiveTab("ads")}
-                        >
-                            <i className="fas fa-fire"></i>
-                            <span>Trendler</span>
-                        </div>
-
-                        <div
-                            className={`nav-item ${activeTab === "media" ? "active" : ""}`}
-                            onClick={() => setActiveTab("media")}
-                        >
-                            <i className="fas fa-search"></i>
-                            <span>Ara</span>
-                        </div>
-
-                        <div
-                            className={`nav-item ${activeTab === "groups" ? "active" : ""}`}
-                            onClick={() => setActiveTab("groups")}
-                        >
-                            <i className="fas fa-users"></i>
-                            <span>Gruplar</span>
-                        </div>
-
-                        <div
-                            className={`nav-item ${activeTab === "chat" ? "active" : ""}`}
-                            onClick={() => setActiveTab("chat")}
-                        >
-                            <i className="fas fa-comments"></i>
-                            <span>DM</span>
-                        </div>
+                        <div className={`nav-item ${activeTab === "downloader" ? "active" : ""}`} onClick={() => setActiveTab("downloader")}><i className="fas fa-cloud"></i> <span>Bulutum</span></div>
+                        <div className={`nav-item ${activeTab === "ads" ? "active" : ""}`} onClick={() => setActiveTab("ads")}><i className="fas fa-fire"></i> <span>Trendler</span></div>
+                        <div className={`nav-item ${activeTab === "media" ? "active" : ""}`} onClick={() => setActiveTab("media")}><i className="fas fa-search"></i> <span>Ara</span></div>
+                        <div className={`nav-item ${activeTab === "groups" ? "active" : ""}`} onClick={() => setActiveTab("groups")}><i className="fas fa-users"></i> <span>Gruplar</span></div>
+                        <div className={`nav-item ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}><i className="fas fa-comments"></i> <span>DM</span></div>
                     </div>
                 </div>
 
                 <div className="nav-right">
-                    {/* Tema Değiştirme Butonu */}
-                    <div className="theme-toggle" onClick={toggleTheme}>
-                        <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+                    <div className={`theme-toggle ${isThemeAnimating ? 'animating' : ''}`} onClick={toggleTheme}>
+                        <i className={`fas ${theme === 'dark' ? 'fa-moon' : 'fa-sun'}`}></i>
                     </div>
-
                     <div className="notification-bell">
                         <i className="fas fa-bell"></i>
-                        {notificationCount > 0 && (
-                            <span className="notification-badge">{notificationCount}</span>
-                        )}
+                        {notificationCount > 0 && <span className="notification-badge">{notificationCount}</span>}
                     </div>
-
-                    <div className="user-dropdown">
-                        <div className="user-avatar">
-                            <i className="fas fa-user"></i>
-                        </div>
-                        <span className="user-name">{user?.username || 'Kullanıcı'}</span>
-                        <i className="fas fa-chevron-down"></i>
-
-                        <div className="dropdown-menu">
-                            <div className="dropdown-item" onClick={() => setActiveTab("profile")}>
-                                <i className="fas fa-user"></i>
-                                <span>Profil</span>
+                    <div className="user-dropdown" onClick={toggleDropdown} ref={dropdownRef}>
+                        <div className="user-avatar"><i className="fas fa-user"></i></div>
+                        <span className="user-name">{user?.username || 'burak'}</span>
+                        <i className={`fas fa-chevron-down ${isDropdownOpen ? 'rotate' : ''}`}></i>
+                        {isDropdownOpen && (
+                            <div className="dropdown-menu show">
+                                <div className="dropdown-item" onClick={(e) => { e.stopPropagation(); setActiveTab("profile"); setIsDropdownOpen(false); }}><i className="fas fa-user"></i><span>Profil</span></div>
+                                <div className="dropdown-item danger" onClick={(e) => { e.stopPropagation(); handleLogout(); }}><i className="fas fa-sign-out-alt"></i><span>Çıkış Yap</span></div>
                             </div>
-                            <div className="dropdown-item">
-                                <i className="fas fa-cog"></i>
-                                <span>Ayarlar</span>
-                            </div>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-item" onClick={handleLogout}>
-                                <i className="fas fa-sign-out-alt"></i>
-                                <span>Çıkış Yap</span>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </nav>
-
-            {/* Ana İçerik Alanı */}
             <main className="main-content-horizontal">
                 {renderContent()}
             </main>

@@ -13,7 +13,6 @@ import os
 class SecurityDetector:
     def __init__(self):
         # GÜVENLİK AYARLARI - False Positive'leri Azaltmak İçin
-        self.security_breach = False
         self.monitoring_active = False
         self.monitor_thread = None
         
@@ -73,15 +72,15 @@ class SecurityDetector:
         
         try:
             # Metodlar
-        methods = [
+            methods = [
                 self._detect_circular_lens,
                 self._detect_bright_spots,
                 self._detect_reflections
-        ]
+            ]
         
             detection_count = 0
             
-        for method in methods:
+            for method in methods:
                 if method(frame):
                     detection_count += 1
         
@@ -161,36 +160,40 @@ class SecurityDetector:
 
     def monitor_security(self, frame):
         """
-        Ana guvenlik kontrol fonksiyonu
-        ART ARDA min_detections KERE TESPIT EDILMELI
+        Analiz yapar ve SONUCU döndürür. 
+        Global state'i kalıcı olarak kilitlemez.
         """
         if frame is None:
             return "CLEAR"
         
         try:
-            # Yüz ve lens tespiti yap
             face_detected = self.detect_faces(frame)
-        lens_detected = self.multi_method_lens_detection(frame)
+            lens_detected = self.multi_method_lens_detection(frame)
         
-            # HER İKİSİ DE TESPİT EDİLMELİ
             if face_detected and lens_detected:
                 self.detection_counter += 1
                 print(f"?? Tespit {self.detection_counter}/{self.min_detections}")
             else:
-                # Tespit yoksa sayacı sıfırla
+                # Tespit kesilirse sayacı düşür
                 self.detection_counter = max(0, self.detection_counter - 1)
         
-            # SADECE ART ARDA min_detections KERE TESPİT EDİLİRSE ENGELLE
+            # Eşik değeri aşıldıysa BLOKE ET
             if self.detection_counter >= self.min_detections:
-            self.security_breach = True
-                print("?? GUVENLIK IHLALI ONAYLANDI!")
-            return "BLOCK_SCREEN"
+                # Buradaki global flag'i kaldırdık veya sadece log için kullanabiliriz.
+                # Kararı views.py verecek.
+                return "BLOCK_SCREEN"
         
             return "CLEAR"
         
         except Exception as e:
             print(f"? Guvenlik kontrolu hatasi: {e}")
+            return "CLEAR"
+        
+        except Exception as e:
+            print(f"? Guvenlik kontrolu hatasi: {e}")
             return "CLEAR"  # Hata durumunda engelleme
+
+        security_detector = SecurityDetector()
 
     def start_monitoring(self):
         """Kamera izlemeyi baslat"""
@@ -213,12 +216,12 @@ class SecurityDetector:
         """Arka plan izleme dongusu"""
         cap = None
         try:
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            return False
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                return False
         
             while self.monitoring_active:
-            ret, frame = cap.read()
+                ret, frame = cap.read()
                 if ret:
                     self.monitor_security(frame)
                 
@@ -228,13 +231,8 @@ class SecurityDetector:
             print(f"? Izleme dongusu hatasi: {e}")
         finally:
             if cap is not None:
-        cap.release()
-        cv2.destroyAllWindows()
-        return self.security_breach
-
-    def stop_monitoring(self):
-        """Kamera izlemeyi durdur"""
-        self.is_monitoring = False
+                cap.release()
+            cv2.destroyAllWindows()
 
 # Singleton instance
 security_detector = SecurityDetector()

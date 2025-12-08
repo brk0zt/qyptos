@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ï»¿# -*- coding: utf-8 -*-
 # memory/views.py
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
@@ -15,21 +15,50 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.http import require_http_methods
 import json
 from django.contrib.auth.decorators import login_required
-import os # file_name için os eklendi
+import os # file_name iÃ§in os eklendi
+from .services.interaction_service import InteractionService
 
 logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def interact_with_ai(request):
+    """
+    KullanÄ±cÄ±nÄ±n Semantik AI ile sohbet etmesini saÄŸlayan uÃ§ nokta.
+    """
+    try:
+        user_message = request.data.get('message')
+        context = request.data.get('context', {}) # Ã–rn: Åžu an aÃ§Ä±k olan dosya, resim yolu vb.
+
+        if not user_message:
+            return Response({"error": "Mesaj boÅŸ olamaz."}, status=400)
+
+        # Interaction servisini baÅŸlat
+        service = InteractionService(request.user)
+        
+        # YanÄ±tÄ± al
+        ai_response = service.process_message(user_message, context)
+
+        return Response({
+            "success": True,
+            "data": ai_response
+        })
+
+    except Exception as e:
+        logger.error(f"AI Interaction Error: {e}")
+        return Response({"error": str(e)}, status=500)
 
 class EnhancedJSONEncoder(DjangoJSONEncoder):
     """
     Tarih/saat ve diger Django tiplerini daha iyi isleyen ozel JSON Encoder.
     """
     def default(self, obj):
-        if hasattr(obj, 'to_dict'): # MemoryItem/TimelineEvent modellerine to_dict() metodu eklendiðini varsayýyoruz.
+        if hasattr(obj, 'to_dict'): # MemoryItem/TimelineEvent modellerine to_dict() metodu eklendiÄŸini varsayÄ±yoruz.
             return obj.to_dict()
         return super().default(obj)
 
 # ----------------------------------------------------------------------
-# ZAMAN ÇÝZELGESÝ (TIMELINE) FONKSÝYONLARI - ÝSÝM ÇAKIÞMASI DÜZELTÝLDÝ
+# ZAMAN Ã‡Ä°ZELGESÄ° (TIMELINE) FONKSÄ°YONLARI - Ä°SÄ°M Ã‡AKIÅžMASI DÃœZELTÄ°LDÄ°
 # ----------------------------------------------------------------------
 
 @login_required
@@ -40,14 +69,14 @@ def get_fused_timeline_manager(request):
     Parametreler: days (int, istege bagli), limit (int, istege bagli)
     """
     try:
-        # Sorgu parametrelerini güvenli bir þekilde al
-        days = int(request.GET.get('days', 7)) # Varsayýlan: Son 7 gün
+        # Sorgu parametrelerini gÃ¼venli bir ÅŸekilde al
+        days = int(request.GET.get('days', 7)) # VarsayÄ±lan: Son 7 gÃ¼n
         limit = int(request.GET.get('limit', 100))
         
         if days <= 0 or limit <= 0:
              return JsonResponse({'error': 'Gecersiz "days" veya "limit" degeri.'}, status=400)
 
-        # Ýþ mantýðýný AdvancedMemoryManager'a devret
+        # Ä°ÅŸ mantÄ±ÄŸÄ±nÄ± AdvancedMemoryManager'a devret
         manager = AdvancedMemoryManager(request.user)
         timeline_data = manager.get_fused_timeline(days=days, limit=limit)
 
@@ -57,7 +86,7 @@ def get_fused_timeline_manager(request):
         }, encoder=EnhancedJSONEncoder)
 
     except Exception as e:
-        # Beklenmedik hatalarý yakala ve 500 dön
+        # Beklenmedik hatalarÄ± yakala ve 500 dÃ¶n
         print(f"Timeline hatasi: {e}")
         return JsonResponse({'error': 'Zaman cizelgesi alinirken sunucu hatasi olustu.'}, status=500)
 
@@ -74,7 +103,7 @@ def get_windows_recall_timeline(request):
         
         events = []
         
-        # Memory item'larý
+        # Memory item'larÄ±
         memories = MemoryItem.objects.filter(
             user=request.user,
             created_at__gte=start_date
@@ -113,7 +142,7 @@ def get_windows_recall_timeline(request):
                 }
             })
         
-        # Tarihe göre sýrala
+        # Tarihe gÃ¶re sÄ±rala
         events.sort(key=lambda x: x['timestamp'], reverse=True)
         
         return Response({
@@ -127,7 +156,7 @@ def get_windows_recall_timeline(request):
         return Response({"error": str(e)}, status=500)
 
 # ----------------------------------------------------------------------
-# HAFIZA ÝSTATÝSTÝKLERÝ FONKSÝYONLARI - ÝSÝM ÇAKIÞMASI DÜZELTÝLDÝ
+# HAFIZA Ä°STATÄ°STÄ°KLERÄ° FONKSÄ°YONLARI - Ä°SÄ°M Ã‡AKIÅžMASI DÃœZELTÄ°LDÄ°
 # ----------------------------------------------------------------------
 
 @login_required
@@ -157,14 +186,14 @@ def get_timeline_by_date(request, date_str):
         start_datetime = timezone.make_aware(datetime.combine(target_date, datetime.min.time()))
         end_datetime = start_datetime + timedelta(days=1)
         
-        # Memory item'larý
+        # Memory item'larÄ±
         memories = MemoryItem.objects.filter(
             user=request.user,
             created_at__gte=start_datetime,
             created_at__lt=end_datetime
         ).select_related('memory_tier')
         
-        # Ýlgili tarihteki aktiviteler
+        # Ä°lgili tarihteki aktiviteler
         activities = UserActivity.objects.filter(
             user=request.user,
             timestamp__gte=start_datetime,
@@ -197,7 +226,7 @@ def get_timeline_by_date(request, date_str):
                 'target_file': activity.target_file
             })
         
-        # Saate göre sýrala
+        # Saate gÃ¶re sÄ±rala
         events.sort(key=lambda x: x['timestamp'])
         
         return Response({
@@ -220,21 +249,21 @@ def get_detailed_memory_stats(request):
         # Debug bilgisi
         print(f"Kullanici: {request.user}, Authenticated: {request.user.is_authenticated}")
         
-        # Toplam memory item sayýsý
+        # Toplam memory item sayÄ±sÄ±
         total_items = MemoryItem.objects.filter(user=request.user).count()
         
-        # Toplam aktivite sayýsý
+        # Toplam aktivite sayÄ±sÄ±
         total_activities = UserActivity.objects.filter(user=request.user).count()
         
-        # Farklý dosya türü sayýsý
+        # FarklÄ± dosya tÃ¼rÃ¼ sayÄ±sÄ±
         file_type_count = MemoryItem.objects.filter(user=request.user).values('file_type').distinct().count()
         
-        # Gerçek memory kullanýmý hesapla (MB cinsinden)
+        # GerÃ§ek memory kullanÄ±mÄ± hesapla (MB cinsinden)
         total_size_bytes = MemoryItem.objects.filter(user=request.user).aggregate(
             total_size=models.Sum('original_size')
         )['total_size'] or 0
         
-        used_memory = total_size_bytes / (1024 * 1024 * 1024)  # GB'ye çevir
+        used_memory = total_size_bytes / (1024 * 1024 * 1024)  # GB'ye Ã§evir
         total_memory = 10  # GB
         
         # Memory profili
@@ -289,7 +318,7 @@ def get_memory_suggestions(request):
     try:
         memory_manager = AdvancedMemoryManager(request.user)
         
-        # Basit öneriler sistemi
+        # Basit Ã¶neriler sistemi
         context = analyze_user_context(request.user)
         suggestions = memory_manager.get_contextual_suggestions(context)
         
@@ -332,7 +361,7 @@ def intelligent_search(request):
         # 1. Semantic arama
         semantic_results = memory_manager.semantic_search(query, file_type, limit)
         
-        # 2. Behavioral öneriler (kullanýcý pattern'lerine göre)
+        # 2. Behavioral Ã¶neriler (kullanÄ±cÄ± pattern'lerine gÃ¶re)
         behavioral_suggestions = get_behavioral_suggestions(request.user, query)
         
         # 3. Context-aware ranking
@@ -364,7 +393,7 @@ def intelligent_search(request):
 def get_contextual_suggestions(request):
     """Kullanicinin mevcut context'ine gore oneriler"""
     try:
-        # Context analizi (zaman, mevcut açýk dosyalar, son aktiviteler)
+        # Context analizi (zaman, mevcut aÃ§Ä±k dosyalar, son aktiviteler)
         context = analyze_user_context(request.user)
         
         memory_manager = AdvancedMemoryManager(request.user)
@@ -386,7 +415,7 @@ def get_user_memory_stats(request):
         memory_count = MemoryItem.objects.filter(user=request.user).count()
         activity_count = UserActivity.objects.filter(user=request.user).count()
         
-        # Dosya türüne göre daðýlým
+        # Dosya tÃ¼rÃ¼ne gÃ¶re daÄŸÄ±lÄ±m
         file_types = MemoryItem.objects.filter(user=request.user).values('file_type').annotate(count=models.Count('id'))
         
         return Response({
@@ -404,16 +433,16 @@ def get_simple_memory_stats(request):
     """Kullanicinin memory istatistiklerini getir (get_memory_stats fonksiyonunun yerine, basit hesaplama yapan versiyon)"""
     try:
         
-        # Toplam memory item sayýsý
+        # Toplam memory item sayÄ±sÄ±
         total_items = MemoryItem.objects.filter(user=request.user).count()
         
-        # Toplam aktivite sayýsý
+        # Toplam aktivite sayÄ±sÄ±
         total_activities = UserActivity.objects.filter(user=request.user).count()
         
-        # Farklý dosya türü sayýsý
+        # FarklÄ± dosya tÃ¼rÃ¼ sayÄ±sÄ±
         file_type_count = MemoryItem.objects.filter(user=request.user).values('file_type').distinct().count()
         
-        # Kullanýlan memory hesaplama (örnek: her item 0.1 GB)
+        # KullanÄ±lan memory hesaplama (Ã¶rnek: her item 0.1 GB)
         used_memory = total_items * 0.1
         total_memory = 10  # GB
         

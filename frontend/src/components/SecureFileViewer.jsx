@@ -1,7 +1,6 @@
 ﻿// SecureFileViewer.jsx
 import React, { useState, useEffect } from 'react';
-import SingleViewMedia from './SingleViewMedia'; // Eski component
-import SecureViewer from './SecureViewer'; // Yeni component
+import SecureViewer from './SecureViewer';
 import { useParams } from 'react-router-dom';
 
 const SecureFileViewer = () => {
@@ -21,13 +20,20 @@ const SecureFileViewer = () => {
                 // API endpoint'ini güncelle
                 const response = await fetch(`http://localhost:8001/api/share/${token}/`);
 
-                if (response.headers.get('X-Security-Breach') === 'CAMERA_DETECTED') {
+                /* if (response.headers.get('X-Security-Breach') === 'CAMERA_DETECTED') {
                     throw new Error('Kamera Güvenlik İhlali Tespit Edildi ve Engellendi.');
                 }
+                */
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Dosya yüklenirken hata oluştu');
+                    // Eğer backend 403 döndürdüyse JSON veya HTML olabilir
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erişim hatası');
+                    } else {
+                        throw new Error('Dosyaya erişilemiyor (Süre dolmuş veya güvenlik engeli).');
+                    }
                 }
 
                 const data = await response.json();

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+﻿
 # urls.py - FIXED VERSION
 from django.urls import path, include
 from .views import (
@@ -58,11 +58,16 @@ urlpatterns = [
     
     # Trending
     path('trending/', views.trending_files_view, name='trending_files'),
+
     path('api/search/public/', views.search_public_files_view, name='search_public_files'), # YENİ
+
+    path('api/search/public/', views.search_public_files_view, name='search_public_files'), # YEN�
+
 
     # Search endpoints
     path('api/search/', SearchView.as_view(), name='search'),
     path('search/', search_view, name='search_alt'),
+
 
     # Güvenlik endpoint'leri
     path('api/security/analyze-frame/', analyze_camera_frame, name='analyze-frame'),
@@ -70,4 +75,12 @@ urlpatterns = [
     
     # Güvenli medya görüntüleme
     path('api/secure-media/<str:token>/', views.secure_media_view, name='secure_media_view'),
+
+    # G�venlik endpoint'leri
+    path('api/security/analyze-frame/', analyze_camera_frame, name='analyze-frame'),
+    path('api/security/report-breach/', report_security_breach, name='report-breach'),
+    
+    # G�venli medya g�r�nt�leme
+ 
+
 ]

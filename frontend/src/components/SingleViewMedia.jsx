@@ -9,6 +9,8 @@ const SingleViewMedia = ({ secureMediaUrl, userEmail, onConsumed, onReady }) => 
 
     // Tekrarlı tetiklemeleri engellemek için basit flag/debounce
     const triggerAggressiveAction = useCallback((reason) => {
+
+        /*
         if (isSecurityAlert || isLocallyConsumed) return;
         console.warn(`[AGRESİF GÜVENLİK İHLALİ] Tespit Edilen İhlal: ${reason}`);
         setIsSecurityAlert(true);
@@ -31,6 +33,7 @@ const SingleViewMedia = ({ secureMediaUrl, userEmail, onConsumed, onReady }) => 
         if (onConsumed) {
             try { onConsumed(); } catch (e) { console.warn("onConsumed call failed:", e); }
         }
+        */
     }, [isSecurityAlert, isLocallyConsumed, userEmail, onConsumed]);
 
     function getCookie(name) {

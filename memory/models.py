@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ï»¿# -*- coding: utf-8 -*-
 # memory/models.py
 from django.conf import settings
 from django.db import models
@@ -9,14 +9,14 @@ from django.utils import timezone
 
 class MemoryTier(models.Model):
     TIER_CHOICES = [
-        # duration_minutes: Instant için 5, Short Term için 24*60=1440, Long Term için 30*24*60=43200
+        # duration_minutes: Instant iÃ§in 5, Short Term iÃ§in 24*60=1440, Long Term iÃ§in 30*24*60=43200
         ('instant', 'Instant Recall'), 
         ('short_term', 'Short Term'), 
         ('long_term', 'Long Term'),
     ]
     name = models.CharField(max_length=20, choices=TIER_CHOICES, unique=True)
-    # duration_minutes: Süre sonunu save() yerine MemoryTier'da merkezileþtirdik.
-    duration_minutes = models.PositiveIntegerField(default=1440) # default 1 gün (short term)
+    # duration_minutes: SÃ¼re sonunu save() yerine MemoryTier'da merkezileÅŸtirdik.
+    duration_minutes = models.PositiveIntegerField(default=1440) # default 1 gÃ¼n (short term)
     
     def __str__(self):
         return self.name
@@ -46,21 +46,21 @@ class MemoryItem(models.Model):
     vector_embedding = models.BinaryField(null=True, blank=True)
     compressed_embedding = models.BinaryField(null=True, blank=True)  # Eklendi
     
-    # --- YENÝ SEMANTÝK GRAFÝK SIKIÞTIRMA ALANLARI ---
+    # --- YENÄ° SEMANTÄ°K GRAFÄ°K SIKIÅžTIRMA ALANLARI ---
     is_semantically_compressed = models.BooleanField(default=False)
     
-    # 1. Semantik Özellik Vektörleri (GNN/Transformer'dan gelen x_final)
-    # BinaryField, numpy/torch tensörünü bayt olarak saklamak için idealdir.
+    # 1. Semantik Ã–zellik VektÃ¶rleri (GNN/Transformer'dan gelen x_final)
+    # BinaryField, numpy/torch tensÃ¶rÃ¼nÃ¼ bayt olarak saklamak iÃ§in idealdir.
     semantic_features = models.BinaryField(null=True, blank=True) 
     
-    # 2. Grafik Topolojisi (Kýrpýlmýþ Edge Index)
-    # Zlib ile sýkýþtýrýlmýþ numpy array (topoloji verisini tutar)
+    # 2. Grafik Topolojisi (KÄ±rpÄ±lmÄ±ÅŸ Edge Index)
+    # Zlib ile sÄ±kÄ±ÅŸtÄ±rÄ±lmÄ±ÅŸ numpy array (topoloji verisini tutar)
     graph_topology = models.BinaryField(null=True, blank=True) 
     
-    # 3. Süperpiksel Haritasý (Geri oluþturma için piksellerin hangi düðüme ait olduðunu tutar)
+    # 3. SÃ¼perpiksel HaritasÄ± (Geri oluÅŸturma iÃ§in piksellerin hangi dÃ¼ÄŸÃ¼me ait olduÄŸunu tutar)
     superpixel_map = models.BinaryField(null=True, blank=True) 
     
-    # 4. Grafik Meta Verileri (Düðüm sayýsý, özellik boyutu, vb.)
+    # 4. Grafik Meta Verileri (DÃ¼ÄŸÃ¼m sayÄ±sÄ±, Ã¶zellik boyutu, vb.)
     graph_metadata = models.JSONField(default=dict)
 
     # Structural representation
@@ -83,7 +83,7 @@ class MemoryItem(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            # Basit süre sonu hesaplama
+            # Basit sÃ¼re sonu hesaplama
             from datetime import timedelta
             from django.utils import timezone
             
@@ -136,3 +136,16 @@ class TimelineEvent(models.Model):
             models.Index(fields=['user', 'timestamp']),
         ]
         ordering = ['-timestamp']
+
+
+class VideoFrame(models.Model):
+    """
+    Bir videonun belirli bir anÄ±ndaki gÃ¶rÃ¼ntÃ¼nÃ¼n vektÃ¶r karÅŸÄ±lÄ±ÄŸÄ±.
+    """
+    memory_item = models.ForeignKey(MemoryItem, on_delete=models.CASCADE, related_name='video_frames')
+    timestamp = models.FloatField(help_text="Videonun kaÃ§Ä±ncÄ± saniyesi")
+    vector_embedding = models.BinaryField(help_text="Bu karenin CLIP vektÃ¶rÃ¼")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.memory_item.file_name} - {self.timestamp}s"

@@ -1,4 +1,4 @@
-from django.contrib import admin
+ï»¿from django.contrib import admin
 from django.urls import path, include, re_path
 from files.views import share_file_view, consume_file, download_file, secure_media_view
 from django.conf import settings
@@ -7,7 +7,7 @@ from chat.routing import websocket_urlpatterns
 from memory.views import intelligent_search, get_contextual_suggestions
 
 urlpatterns = [
-    # test_view kaldýrýldý, share_file_view etkinleþtirildi
+    # test_view kaldÄ±rÄ±ldÄ±, share_file_view etkinleÅŸtirildi
     re_path(r'^share/(?P<token>.+)/$', share_file_view, name='share-file'),
     path('api/secure-media/<uuid:token>/', secure_media_view, name='secure-media'),
     path('admin/', admin.site.urls),
@@ -16,10 +16,11 @@ urlpatterns = [
     path('api/download/<int:file_id>/', download_file, name='download_file'),
     path('api/', include('files.urls')),
     path('api/', include('users.urls')),
+    path('api/', include('memory.urls')),
     path('api/auth/', include('users.urls')),
     path('notifications/', include('notifications.urls')),
     path('ads/', include('ads.urls')),
-    path('api/memory/', include('memory.urls')),  # Memory URLs eklenmiþ olmalý
+    path('api/memory/', include('memory.urls')),  # Memory URLs eklenmiÅŸ olmalÄ±
     path('api/memory/search/', intelligent_search, name='intelligent_search'),
     path('api/memory/suggestions/', get_contextual_suggestions, name='context_suggestions'),
 ]
