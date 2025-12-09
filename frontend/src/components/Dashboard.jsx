@@ -70,20 +70,24 @@ const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [aiResponse, setAiResponse] = useState(null);
     const [foundMemories, setFoundMemories] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
 
-    const handleSendMessage = async () => {
-        if (!inputText.trim() || isProcessing) return;
+    const handleSendMessage = async (overrideText = null) => {
+        const textToSend = overrideText || inputText;
+
+        if (!textToSend.trim() || isProcessing) return;
 
         setIsProcessing(true);
         setAiResponse(null);
         setFoundMemories([]);
+        setSuggestions([]); // Önceki önerileri temizle
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         try {
             const token = localStorage.getItem('token');
-            console.log("Sorgu:", inputText);
+            console.log("Sorgu:", textToSend);
 
             const response = await fetch(`${API_BASE}/api/chat/ask/`, {
                 method: 'POST',
@@ -91,38 +95,37 @@ const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ message: inputText }),
+                body: JSON.stringify({ message: textToSend }),
                 signal: controller.signal
             });
 
             clearTimeout(timeoutId);
 
-            const jsonResponse = await response.json();
+            const rawData = await response.json();
+            // Backend bazen {data: ...} bazen direkt {...} dönebilir, ikisini de kapsayalım
+            const data = rawData.data || rawData;
 
-            // --- DÜZELTME BURADA ---
-            // Gelen veri { data: {...}, success: true } formatında olabilir.
-            // Eğer jsonResponse.data varsa onu kullan, yoksa direkt kendisini kullan.
-            const actualData = jsonResponse.data || jsonResponse;
-
-            console.log("📦 İşlenen Veri:", actualData);
+            console.log("📦 AI Yanıtı:", data);
 
             if (response.ok) {
                 // 1. Cevap Metni
-                setAiResponse(actualData.reply || "Sonuç bulundu.");
+                setAiResponse(data.reply || "Sonuç bulundu.");
 
-                // 2. Görseller
-                const memories = actualData.relevant_memories || [];
+                // 2. Öneriler (Şaibe Varsa)
+                if (data.suggestions && data.suggestions.length > 0) {
+                    console.log("💡 Öneriler geldi:", data.suggestions);
+                    setSuggestions(data.suggestions);
+                }
 
+                // 3. Hafıza Kartları (Resimler)
+                const memories = data.relevant_memories || [];
                 if (memories.length > 0) {
-                    console.log(`📸 ${memories.length} görsel bulundu, ekrana basılıyor...`);
                     setFoundMemories(memories);
-                } else {
-                    console.warn("⚠️ Görsel listesi boş.");
                 }
 
                 if (onRefreshTimeline) onRefreshTimeline();
             } else {
-                setAiResponse("Hata: " + (actualData.detail || "İşlem başarısız."));
+                setAiResponse("Hata: " + (data.detail || "İşlem başarısız."));
             }
 
         } catch (error) {
@@ -130,10 +133,11 @@ const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
             setAiResponse(error.name === 'AbortError' ? "Zaman aşımı." : "Bağlantı hatası.");
         } finally {
             setIsProcessing(false);
-            setInputText("");
+            if (!overrideText) setInputText(""); // Sadece inputtan geldiyse temizle
             clearTimeout(timeoutId);
         }
     };
+
     return (
         <div className="welcome-chat-wrapper">
             <div className="welcome-header">
@@ -144,29 +148,58 @@ const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
             <div className="gemini-input-container">
                 <input
                     type="text"
-                    placeholder="Qyptos AI'a sorun (Örn: 'Elma')"
+                    placeholder="Qyptos AI'a sorun"
                     className="gemini-text-input"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isProcessing}
                 />
-                <button className="gemini-icon-btn mic-btn" onClick={handleSendMessage}>
+                <button className="gemini-icon-btn mic-btn" onClick={() => handleSendMessage()}>
                     <i className={`fas ${isProcessing ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
                 </button>
             </div>
 
-            {/* SONUÇ ALANI - Her zaman render edilsin (Görünürlük testi için) */}
+            {/* SONUÇ ALANI */}
             <div className="ai-result-area" style={{ marginTop: '20px', padding: '10px' }}>
 
-                {/* Metin Cevabı */}
+                {/* 1. Yapay Zeka Cevabı */}
                 {aiResponse && (
                     <div className="ai-text-bubble" style={{ color: 'white', marginBottom: '15px' }}>
                         <i className="fas fa-robot"></i> {aiResponse}
                     </div>
                 )}
 
-                {/* Kartlar - Doğrudan map ediyoruz */}
+                {/* 2. ÖNERİ BUTONLARI (Chips) - YENİ ÖZELLİK */}
+                {suggestions.length > 0 && (
+                    <div className="suggestions-container" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                        {suggestions.map((sug, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleSendMessage(sug.search_query)}
+                                style={{
+                                    padding: '10px 20px',
+                                    borderRadius: '20px',
+                                    border: '1px solid #3B82F6',
+                                    background: 'rgba(59, 130, 246, 0.1)',
+                                    color: '#3B82F6',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+                            >
+                                {sug.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* 3. Bulunan Dosyalar */}
                 {foundMemories.length > 0 && (
                     <div style={{ borderTop: '1px solid #333', paddingTop: '10px' }}>
                         <small style={{ color: '#666' }}>Bulunan Dosyalar ({foundMemories.length}):</small>
@@ -180,23 +213,30 @@ const WelcomeChatSection = ({ username, onFileSelect, onRefreshTimeline }) => {
     );
 };
 
-// Dashboard.jsx içine (Eski MemoryResultCard yerine)
+// Dashboard.jsx içindeki MemoryResultCard bileşeni (Güncellenmiş)
+
 const MemoryResultCard = ({ memory }) => {
-    // URL Kontrolü (Garanti Yöntem)
+    // URL Kontrolü
     let imageUrl = memory.thumbnail || '';
     if (imageUrl && !imageUrl.startsWith('http')) {
-        // Backend adresi ile birleştir
-        imageUrl = `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+        const cleanBase = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+        const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+        imageUrl = `${cleanBase}${cleanPath}`;
     }
 
-    console.log("RENDER CARD:", memory.file_name, imageUrl);
+    // Dosya türü
+    const isImage = memory.file_type === 'image' ||
+        memory.file_name?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
+
+    // Video zaman bilgisi içeriyor mu?
+    const hasTimestamp = memory.summary && memory.summary.includes('saniyesinde');
 
     return (
         <div className="memory-result-card"
             onClick={() => window.open(imageUrl, '_blank')}
             style={{
-                background: '#1a1a1a', // Koyu gri (görünür olması için)
-                border: '1px solid #3B82F6',
+                background: '#1a1a1a',
+                border: hasTimestamp ? '1px solid #FBBF24' : '1px solid #3B82F6', // Video bulunursa Sarı çerçeve
                 borderRadius: '12px',
                 padding: '15px',
                 marginTop: '15px',
@@ -204,33 +244,46 @@ const MemoryResultCard = ({ memory }) => {
                 gap: '15px',
                 cursor: 'pointer',
                 minHeight: '80px',
-                color: 'white' // Yazı rengi beyaz
+                color: 'white'
             }}
         >
-            {/* Küçük Resim Alanı */}
+            {/* Küçük Resim */}
             <div style={{
                 width: '80px', height: '80px',
                 borderRadius: '8px', overflow: 'hidden',
-                background: '#000', flexShrink: 0
+                background: '#000', flexShrink: 0,
+                border: '1px solid rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
-                <img
-                    src={imageUrl}
-                    alt="thumbnail"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.style.display = 'none'; }} // Resim yoksa gizle ama kutuyu bozma
-                />
+                {isImage && imageUrl ? (
+                    <img src={imageUrl} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : (
+                    <div style={{ fontSize: '2rem', color: '#fff' }}>
+                        <i className={memory.file_type === 'video' ? "fas fa-video" : "fas fa-file-alt"}></i>
+                    </div>
+                )}
             </div>
 
             {/* Bilgi Alanı */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <h4 style={{ margin: '0 0 5px 0', color: '#3B82F6', fontSize: '1rem' }}>
+                <h4 style={{ margin: '0 0 5px 0', color: hasTimestamp ? '#FBBF24' : '#3B82F6', fontSize: '1rem' }}>
                     {memory.file_name}
                 </h4>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+
+                {/* Özet / Zaman Damgası Alanı - GÖRÜNÜR YAPILDI */}
+                <p style={{
+                    margin: '0 0 5px 0',
+                    fontSize: '0.9rem',
+                    color: hasTimestamp ? '#FBBF24' : '#ccc', // Sarı veya Açık Gri
+                    fontWeight: hasTimestamp ? 'bold' : 'normal'
+                }}>
+                    {memory.summary || "Görsel içerik."}
+                </p>
+
+                <div style={{ fontSize: '0.75rem', opacity: 0.6, color: '#aaa' }}>
+                    <i className="fas fa-bullseye" style={{ marginRight: '5px' }}></i>
                     Skor: %{(memory.similarity_score * 100).toFixed(0)}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '5px' }}>
-                    {imageUrl}
                 </div>
             </div>
         </div>

@@ -57,7 +57,7 @@ urlpatterns = [
     path('ads/my-earnings/', my_earnings, name='my_earnings'),
     
     # Trending
-    path('trending/', views.trending_files_view, name='trending_files'),
+    path('trending/', views.trending_files, name='trending_files'),
 
     path('api/search/public/', views.search_public_files_view, name='search_public_files'), # YENİ
 

@@ -4,9 +4,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .services.advanced_memory_manager import AdvancedMemoryManager
 from .utils import get_behavioral_suggestions, rank_results_with_context, analyze_user_context, track_user_activity
-from .models import MemoryItem, UserActivity, UserMemoryProfile # Modeller import edildi
 from django.db import models
 import logging
 from django.utils import timezone
@@ -16,7 +14,6 @@ from django.views.decorators.http import require_http_methods
 import json
 from django.contrib.auth.decorators import login_required
 import os # file_name için os eklendi
-from .services.interaction_service import InteractionService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +23,8 @@ def interact_with_ai(request):
     """
     Kullanıcının Semantik AI ile sohbet etmesini sağlayan uç nokta.
     """
+    from .services.interaction_service import InteractionService
+
     try:
         user_message = request.data.get('message')
         context = request.data.get('context', {}) # Örn: Şu an açık olan dosya, resim yolu vb.
@@ -68,6 +67,8 @@ def get_fused_timeline_manager(request):
     Kullanicinin zaman cizelgesi olaylarini (Timeline Events) AdvancedMemoryManager ile getirir.
     Parametreler: days (int, istege bagli), limit (int, istege bagli)
     """
+    from .services.advanced_memory_manager import AdvancedMemoryManager
+
     try:
         # Sorgu parametrelerini güvenli bir şekilde al
         days = int(request.GET.get('days', 7)) # Varsayılan: Son 7 gün
@@ -94,6 +95,8 @@ def get_fused_timeline_manager(request):
 @permission_classes([IsAuthenticated])
 def get_windows_recall_timeline(request):
     """Windows Recall benzeri, dogrudan DB'den okuma yapan timeline gorunumu (get_timeline fonksiyonunun yerine)"""
+    from .models import MemoryItem, UserActivity, UserMemoryProfile
+
     try:
         days = int(request.GET.get('days', 7))
         limit = int(request.GET.get('limit', 50))
@@ -165,6 +168,8 @@ def get_memory_stats_manager(request):
     """
     Kullanicinin hafiza kullanim istatistiklerini AdvancedMemoryManager ile getirir.
     """
+    from .services.advanced_memory_manager import AdvancedMemoryManager
+
     try:
         manager = AdvancedMemoryManager(request.user)
         stats = manager.get_user_stats()
@@ -181,6 +186,8 @@ def get_memory_stats_manager(request):
 @permission_classes([IsAuthenticated])
 def get_timeline_by_date(request, date_str):
     """Belirli bir tarih icin timeline getir"""
+    from .models import MemoryItem, UserActivity, UserMemoryProfile
+
     try:
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         start_datetime = timezone.make_aware(datetime.combine(target_date, datetime.min.time()))
@@ -243,6 +250,8 @@ def get_timeline_by_date(request, date_str):
 @permission_classes([IsAuthenticated])
 def get_detailed_memory_stats(request):
     """Kullanicinin memory istatistiklerini getir (get_memory_stats fonksiyonunun yerine, byte hesabi yapan versiyon)"""
+    from .models import MemoryItem, UserActivity, UserMemoryProfile
+
     try:
         logger.info(f"Memory stats istegi - Kullanici: {request.user.username}")
         
@@ -315,6 +324,8 @@ def track_user_activity(request):
 @permission_classes([IsAuthenticated])
 def get_memory_suggestions(request):
     """Kullanici icin oneriler getir"""
+    from .services.advanced_memory_manager import AdvancedMemoryManager
+
     try:
         memory_manager = AdvancedMemoryManager(request.user)
         
@@ -330,6 +341,7 @@ def get_memory_suggestions(request):
 @permission_classes([IsAuthenticated])
 def search_memories(request):
     """Hafizada arama yap"""
+    from .services.advanced_memory_manager import AdvancedMemoryManager
     try:
         query = request.data.get('query')
         file_type = request.data.get('file_type')
@@ -348,6 +360,8 @@ def search_memories(request):
 @permission_classes([IsAuthenticated])
 def intelligent_search(request):
     """Akilli semantic arama"""
+    from .services.advanced_memory_manager import AdvancedMemoryManager
+
     try:
         query = request.data.get('query', '')
         file_type = request.data.get('file_type')
@@ -392,6 +406,8 @@ def intelligent_search(request):
 @permission_classes([IsAuthenticated])
 def get_contextual_suggestions(request):
     """Kullanicinin mevcut context'ine gore oneriler"""
+    from .services.advanced_memory_manager import AdvancedMemoryManager
+
     try:
         # Context analizi (zaman, mevcut açık dosyalar, son aktiviteler)
         context = analyze_user_context(request.user)
@@ -410,6 +426,8 @@ def get_contextual_suggestions(request):
 @permission_classes([IsAuthenticated])
 def get_user_memory_stats(request):
     """Kullanici hafiza istatistiklerini getir (MemoryItem/UserActivity sayimi)"""
+    from .models import MemoryItem, UserActivity, UserMemoryProfile
+
     try:
         
         memory_count = MemoryItem.objects.filter(user=request.user).count()
@@ -431,6 +449,8 @@ def get_user_memory_stats(request):
 @permission_classes([IsAuthenticated])
 def get_simple_memory_stats(request):
     """Kullanicinin memory istatistiklerini getir (get_memory_stats fonksiyonunun yerine, basit hesaplama yapan versiyon)"""
+    from .models import MemoryItem, UserActivity, UserMemoryProfile
+
     try:
         
         # Toplam memory item sayısı

@@ -6,7 +6,7 @@ import logging
 from django.db.models import Q, F
 from django.db import models
 # Modellerini doğru yerden import ettiğine emin ol
-from ..models import MemoryItem, UserActivity, TimelineEvent, UserMemoryProfile, MemoryTier
+from ..models import MemoryItem, UserActivity, TimelineEvent, UserMemoryProfile, MemoryTier, VideoFrame
 from .ai_services import AIService 
 from .compression_engine import SemanticCompressionEngine
 from django.db import models
@@ -26,105 +26,150 @@ class AdvancedMemoryManager:
         self.user_profile, _ = UserMemoryProfile.objects.get_or_create(user=user)
         self.translator = GoogleTranslator(source='auto', target='en')
 
+
+    def normalize_tr(self, text):
+        """
+        Türkçe metni normalize eder:
+        - Küçük harfe çevirir
+        - Türkçe karakterleri İngilizce karşılıklarına dönüştürür
+        - Fazla boşlukları temizler
+        """
+        if not text:
+            return ""
+    
+        # Küçük harfe çevir
+        text = text.lower()
+    
+        # Türkçe karakter dönüşümü
+        turkish_chars = {
+            'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c',
+            'İ': 'i', 'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'Ö': 'o', 'Ç': 'c',
+            'â': 'a', 'î': 'i', 'û': 'u'
+        }
+    
+        for char, replacement in turkish_chars.items():
+            text = text.replace(char, replacement)
+    
+        # Fazla boşlukları temizle
+        text = ' '.join(text.split())
+    
+        return text
+
     def semantic_search(self, query: str, file_type: str = None, limit: int = 10) -> list:
-        print(f"\n🔎 AKILLI ARAMA BAŞLADI: '{query}' (Kullanıcı ID: {self.user.id})")
+        print(f"\n🔎 AKILLI ARAMA (v5 - Text Content): '{query}'")
         
-        if not query:
-            return []
+        if not query: return []
 
         results_dict = {}
 
         try:
-
+            # 1. Çeviri
             try:
                 translated_query = self.translator.translate(query)
-                print(f"   🌍 Dil Algılandı ve Çevrildi: '{query}' -> '{translated_query}'")
-            except Exception as e:
-                print(f"   ⚠️ Çeviri servisi ulaşılamadı, orijinal dil kullanılıyor. Hata: {e}")
+                print(f"   🌍 Çeviri: '{query}' -> '{translated_query}'")
+            except: 
                 translated_query = query
 
-            # --- 1. PROMPT ENGINEERING (Sorgu Zenginleştirme) ---
-            # Model "kedi" yerine "A photo of kedi" cümlesini daha iyi anlar.
-            # Bu, vektör skorlarını (cosine similarity) yukarı çeker.
-            clean_query = translated_query.lower()
-            
-            if "photo of" in clean_query or "picture of" in clean_query:
-                visual_prompt = translated_query # Kullanıcının yazdığını olduğu gibi kullan
-            else:
-                visual_prompt = f"A photo of {translated_query}" # Biz ekleyelim
-            
+            # 2. Prompt Hazırlığı
+            visual_prompt = f"{translated_query}"
             print(f"   ℹ️  AI Prompt: '{visual_prompt}'")
 
-            # Embeddingleri Hazırla
-            # Metin araması için orijinal sorguyu, görsel araması için prompt'u kullanıyoruz
+            # 3. Embedding Alma
             query_vector_text = self.ai_service.get_text_embedding(translated_query) 
             query_vector_clip = self.ai_service.get_clip_text_embedding(visual_prompt)
 
-            # --- 2. ADAY HAVUZUNU OLUŞTURMA ---
-            # Sadece vektörü olanları al (Vektörsüz dosya "kör" dosyadır)
-            # İsim eşleşmesini burada filtrelemiyoruz, onu puanlarken kullanacağız.
-            filters = Q(user=self.user) & Q(vector_embedding__isnull=False)
+            # 4. Adayları Filtrele
+            filters = Q(user=self.user)
+            # Vektörü olanlar VEYA içeriği olanlar (Metin dosyaları vektörsüz de aranabilir içerikten)
+            # Ama şimdilik vektörü olanları alalım, zaten text dosyalarının vektörü var.
+            filters &= Q(vector_embedding__isnull=False)
+            
             if file_type:
                 filters &= Q(file_type=file_type)
 
             candidates = MemoryItem.objects.filter(filters)
             print(f"   -> Taranacak aday sayısı: {candidates.count()}")
 
-            # --- 3. PUANLAMA DÖNGÜSÜ ---
+            # --- 5. VİDEO KARELERİ (ÖNCELİK 1) ---
+            if query_vector_clip is not None:
+                video_frames = VideoFrame.objects.filter(memory_item__user=self.user).select_related('memory_item')
+                for frame in video_frames:
+                    frame_vector = np.frombuffer(frame.vector_embedding, dtype=np.float32)
+                    if frame_vector.shape[0] != 512: continue
+
+                    raw_score = float(np.dot(frame_vector, query_vector_clip) / (np.linalg.norm(frame_vector) * np.linalg.norm(query_vector_clip)))
+                    
+                    if raw_score < 0.22: continue
+
+                    display_score = min(pow(raw_score, 4) * 150, 0.99)
+                    parent = frame.memory_item
+                    
+                    if parent.id in results_dict:
+                        if display_score > results_dict[parent.id]['similarity_score']:
+                            results_dict[parent.id].update({
+                                'similarity_score': display_score,
+                                'ranking_score': display_score,
+                                'summary': f"✅ Aradığınız görüntü videonun {int(frame.timestamp)}. saniyesinde tespit edildi."
+                            })
+                    else:
+                        if "uploads" not in parent.file_name: safe_url = f"/media/uploads/{parent.user.id}/{parent.file_name}"
+                        else: safe_url = f"/media/{parent.file_name}"
+                        
+                        results_dict[parent.id] = {
+                            'id': parent.id, 'file_name': parent.file_name, 'file_type': 'video',
+                            'file_path': parent.file_path, 'similarity_score': display_score,
+                            'ranking_score': display_score,
+                            'summary': f"✅ Aradığınız görüntü videonun {int(frame.timestamp)}. saniyesinde tespit edildi.",
+                            'thumbnail': safe_url
+                        }
+
+            # --- 6. GENEL DOSYA VE METİN İÇERİĞİ (ÖNCELİK 2) ---
             for item in candidates:
+                if item.id in results_dict and item.file_type == 'video': continue
+
                 item_vector = np.frombuffer(item.vector_embedding, dtype=np.float32)
+                current_query = query_vector_text if item_vector.shape[0] == 384 else query_vector_clip
                 
-                current_query_vector = None
-                if item_vector.shape[0] == 384: current_query_vector = query_vector_text
-                elif item_vector.shape[0] == 512: current_query_vector = query_vector_clip
+                if current_query is None or item_vector.shape != current_query.shape: continue
+
+                # A. Vektör Skoru
+                raw_score = float(np.dot(item_vector, current_query) / (np.linalg.norm(item_vector) * np.linalg.norm(current_query)))
                 
-                if current_query_vector is None or item_vector.shape != current_query_vector.shape:
-                    continue
+                # B. Metin İçeriği Kontrolü (Critical Fix)
+                content_match = False
+                if item.content_summary:
+                    norm_content = self.normalize_tr(item.content_summary)
+                    norm_query = self.normalize_tr(query)
+                    norm_trans = self.normalize_tr(translated_query)
+                    
+                    # Kelime içerikte geçiyor mu?
+                    if norm_query in norm_content or norm_trans in norm_content:
+                        content_match = True
 
-                # A. TEMEL SKOR (Cosine Similarity)
-                raw_score = np.dot(item_vector, current_query_vector) / (
-                    np.linalg.norm(item_vector) * np.linalg.norm(current_query_vector)
-                )
-                raw_score = float(raw_score)
+                # C. Eşik (İçerik tutuyorsa eşiği yoksay)
+                if raw_score < 0.22 and not content_match: continue
 
-                # B. EŞİK KONTROLÜ (Gürültü Filtresi)
-                # 0.21 altı genellikle alakasızdır.
-                if raw_score < 0.21:
-                    continue
-
-                # C. ÜSTEL PUANLAMA (Exponential Scoring)
-                # Makası açmak için 4. kuvvetini alıyoruz.
-                # Örnek: Webcam(0.24)^4 = 0.0033 vs Bebek(0.28)^4 = 0.0061 (2 kat fark!)
-                display_score = pow(raw_score, 4) * 150
-
-                # D. KELİME BONUSU (Sadece %5)
-                # Orijinal Türkçe isimde geçiyorsa küçük bir jest yap.
-                keyword_bonus = 0.0
+                # D. Puanlama
+                display_score = min(pow(raw_score, 4) * 150, 0.99)
+                
+                # E. Bonuslar
                 if query.lower() in item.file_name.lower():
-                    keyword_bonus = 0.05
-                    display_score += keyword_bonus
+                    display_score = min(display_score + 0.05, 0.99)
+                
+                if content_match:
+                    display_score = max(display_score, 0.75) # En az %75 ver
+                    display_score = min(display_score + 0.20, 0.99)
+                    print(f"      📖 Metin Eşleşti: {item.file_name}")
 
-                # Tavan puan %99
-                display_score = min(display_score, 0.99)
-
-                # --- URL DÜZELTME ---
-                if "uploads" not in item.file_name:
-                    safe_url = f"/media/uploads/{item.user.id}/{item.file_name}"
-                else:
-                    safe_url = f"/media/{item.file_name}"
-
-                # Sadece yüksek skorlu adayları loga bas (Kirlilik olmasın)
-                if display_score > 0.50:
-                    print(f"      + Güçlü Aday: {item.file_name[:20]}... | Ham: {raw_score:.3f} | Sonuç: %{display_score*100:.1f}")
+                # URL
+                if "uploads" not in item.file_name: safe_url = f"/media/uploads/{item.user.id}/{item.file_name}"
+                else: safe_url = f"/media/{item.file_name}"
 
                 results_dict[item.id] = {
-                    'id': item.id,
-                    'file_name': item.file_name,
-                    'file_type': item.file_type,
-                    'file_path': item.file_path,
-                    'similarity_score': display_score,
+                    'id': item.id, 'file_name': item.file_name, 'file_type': item.file_type,
+                    'file_path': item.file_path, 'similarity_score': display_score,
                     'ranking_score': display_score,
-                    'summary': item.content_summary,
+                    'summary': item.content_summary[:200] if item.content_summary else "Görsel içerik.",
                     'thumbnail': safe_url
                 }
 
@@ -135,10 +180,11 @@ class AdvancedMemoryManager:
             return final_results[:limit]
 
         except Exception as e:
-            logger.error(f"Semantic search hatası: {e}")
-            print(f"❌ ARAMA HATASI: {e}")
+            logger.error(f"Search error: {e}")
+            import traceback
+            traceback.print_exc()
             return []
-    
+
     def get_fused_timeline(self, days: int = 7, limit: int = 100) -> list:
         """
         TimelineEvent ve kritik UserActivity'leri birleştirip zamana ve öneme göre sıralar.

@@ -1,16 +1,12 @@
 {
   "ExpandedNodes": [
     "",
-    "\\frontend",
-    "\\frontend\\src",
-    "\\frontend\\src\\components",
-    "\\frontend\\src\\components\\styles",
+    "\\files",
     "\\memory",
     "\\memory\\management",
-    "\\memory\\services",
-    "\\memory\\views",
-    "\\users"
+    "\\memory\\management\\commands",
+    "\\memory\\services"
   ],
-  "SelectedNode": "\\memory\\services\\advanced_memory_manager.py",
+  "SelectedNode": "\\files\\urls.py",
   "PreviewInSolutionExplorer": false
 }

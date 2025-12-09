@@ -137,7 +137,6 @@ class TimelineEvent(models.Model):
         ]
         ordering = ['-timestamp']
 
-
 class VideoFrame(models.Model):
     """
     Bir videonun belirli bir anındaki görüntünün vektör karşılığı.
@@ -149,3 +148,28 @@ class VideoFrame(models.Model):
 
     def __str__(self):
         return f"{self.memory_item.file_name} - {self.timestamp}s"
+
+
+class Person(models.Model):
+    """Tanımlanan kişiler (Örn: Burak, Ahmet, Bilinmeyen #1)"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, default="Bilinmeyen Kişi")
+    is_identified = models.BooleanField(default=False) # Kullanıcı adını verdi mi?
+    cover_photo = models.CharField(max_length=500, blank=True, null=True) # Kapak fotosu
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class FaceEncoding(models.Model):
+    """Bir fotoğrafta bulunan yüzün sayısal imzası"""
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='faces')
+    memory_item = models.ForeignKey(MemoryItem, on_delete=models.CASCADE, related_name='detected_faces')
+    encoding = models.BinaryField() # 128 boyutlu numpy array (bytes)
+    location_top = models.IntegerField()
+    location_right = models.IntegerField()
+    location_bottom = models.IntegerField()
+    location_left = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.person.name} in {self.memory_item.file_name}"
